@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: road_sight_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-road_sight}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-road_sight_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-road_sight}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

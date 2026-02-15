@@ -1,0 +1,34 @@
+__pycache__/
+*.pyc
+.env
+*.pt
+node_modules/
+dist/
+.vite/
+videos/*.mp4
+.mypy_cache/
+.pytest_cache/
+
+# Cookies (sensitive)
+cookies.txt
+
+# Screenshots (local only)
+Screenshot_*.png
+*.jpg
+
+# Logs
+logs/
+
+
+# PM2
+ecosystem.config.js
+
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Venv
+.venv/

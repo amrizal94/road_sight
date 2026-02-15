@@ -1,0 +1,17 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.35
+geoalchemy2==0.15.2
+shapely>=2.0.0
+alembic==1.13.3
+psycopg[binary]>=3.2.0
+python-dotenv==1.0.1
+python-multipart==0.0.12
+ultralytics==8.3.2
+opencv-python-headless==4.10.0.84
+supervision==0.24.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+websockets==13.1
+aiofiles==24.1.0
+yt-dlp>=2024.0.0
