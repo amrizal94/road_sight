@@ -23,11 +23,11 @@ interface WsDetection {
 }
 
 const VEHICLE_ICONS: Record<string, string> = {
-  car: "\u{1F697}",
-  motorcycle: "\u{1F3CD}\u{FE0F}",
-  bus: "\u{1F68C}",
-  truck: "\u{1F69B}",
-  bicycle: "\u{1F6B2}",
+  car: "directions_car",
+  motorcycle: "two_wheeler",
+  bus: "directions_bus",
+  truck: "local_shipping",
+  bicycle: "pedal_bike",
 };
 
 export default function LiveMonitor({ cameraId }: Props) {
@@ -63,7 +63,7 @@ export default function LiveMonitor({ cameraId }: Props) {
     };
   }, []);
 
-  // Poll live status - slow poll (5s) when idle, fast poll (2s) when running
+  // Poll live status
   useEffect(() => {
     let active = true;
 
@@ -77,9 +77,7 @@ export default function LiveMonitor({ cameraId }: Props) {
       }
     };
 
-    // Initial check
     checkStatus();
-
     const interval = setInterval(checkStatus, isRunning ? 2000 : 5000);
     return () => {
       active = false;
@@ -90,7 +88,6 @@ export default function LiveMonitor({ cameraId }: Props) {
   // WebSocket ONLY when monitor is running
   useEffect(() => {
     if (!isRunning) {
-      // Close existing WS if monitor stopped
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
@@ -113,9 +110,7 @@ export default function LiveMonitor({ cameraId }: Props) {
       }
     };
 
-    ws.onerror = () => {
-      // Silently handle WS errors
-    };
+    ws.onerror = () => {};
 
     return () => {
       ws.close();
@@ -129,7 +124,6 @@ export default function LiveMonitor({ cameraId }: Props) {
     setError("");
     try {
       await startLiveMonitor(cameraId, url, selectedModel || undefined);
-      // Immediately check status
       const res = await getLiveStatus(cameraId);
       setStatus(res.data);
     } catch (e: any) {
@@ -156,17 +150,17 @@ export default function LiveMonitor({ cameraId }: Props) {
       : `/api/stream/live/feed-raw/${cameraId}`;
 
   return (
-    <div className="bg-white rounded-lg shadow p-3 md:p-4 space-y-4">
+    <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base md:text-lg font-semibold">Live Monitoring</h3>
+        <h3 className="text-base md:text-lg font-semibold text-slate-200">Live Monitoring</h3>
         {status && status.status !== "idle" && (
           <span
             className={`px-2 py-1 rounded text-xs font-medium ${
               status.status === "running"
-                ? "bg-green-100 text-green-700"
+                ? "bg-emerald-500/20 text-emerald-400"
                 : status.status === "error"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-gray-100 text-gray-500"
+                  ? "bg-red-500/20 text-red-400"
+                  : "bg-slate-700 text-slate-400"
             }`}
           >
             {status.status}
@@ -182,12 +176,12 @@ export default function LiveMonitor({ cameraId }: Props) {
             placeholder="YouTube Live URL (https://youtube.com/watch?v=...)"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="border rounded px-3 py-2 w-full text-sm"
+            className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 w-full text-sm placeholder-slate-500 focus:border-primary focus:outline-none"
           />
           <select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
-            className="border rounded px-3 py-2 w-full text-sm bg-white"
+            className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 w-full text-sm focus:border-primary focus:outline-none"
           >
             {models.map((m) => (
               <option key={m.id} value={m.id}>
@@ -198,7 +192,7 @@ export default function LiveMonitor({ cameraId }: Props) {
           <button
             onClick={handleStart}
             disabled={loading || !url.trim()}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm disabled:opacity-50"
+            className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-sm disabled:opacity-50 transition-colors"
           >
             {loading ? "Starting..." : "Start Live Monitor"}
           </button>
@@ -207,13 +201,13 @@ export default function LiveMonitor({ cameraId }: Props) {
         <button
           onClick={handleStop}
           disabled={loading}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm disabled:opacity-50"
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm disabled:opacity-50 transition-colors"
         >
           {loading ? "Stopping..." : "Stop Monitoring"}
         </button>
       )}
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-400 text-sm">{error}</p>}
 
       {/* Video feeds */}
       {isRunning && (
@@ -222,20 +216,20 @@ export default function LiveMonitor({ cameraId }: Props) {
           <div className="flex gap-2">
             <button
               onClick={() => setFeedMode("ai")}
-              className={`px-3 py-1 rounded text-sm ${
+              className={`px-3 py-1 rounded text-sm transition-colors ${
                 feedMode === "ai"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
+                  ? "bg-primary text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-slate-200"
               }`}
             >
               AI Detection
             </button>
             <button
               onClick={() => setFeedMode("raw")}
-              className={`px-3 py-1 rounded text-sm ${
+              className={`px-3 py-1 rounded text-sm transition-colors ${
                 feedMode === "raw"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
+                  ? "bg-primary text-white"
+                  : "bg-slate-800 text-slate-400 hover:text-slate-200"
               }`}
             >
               Raw Feed
@@ -243,7 +237,7 @@ export default function LiveMonitor({ cameraId }: Props) {
           </div>
 
           {/* MJPEG stream */}
-          <div className="bg-black rounded-lg overflow-hidden">
+          <div className="bg-black rounded-lg overflow-hidden border border-slate-800">
             <img
               ref={imgRef}
               src={feedUrl}
@@ -259,23 +253,25 @@ export default function LiveMonitor({ cameraId }: Props) {
         <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {Object.entries(status.vehicle_counts).map(([type, count]) => (
-              <div key={type} className="bg-gray-50 rounded p-2 text-center">
-                <div className="text-lg md:text-xl">{VEHICLE_ICONS[type] ?? "\u{1F699}"}</div>
-                <div className="text-base md:text-lg font-bold">{count}</div>
-                <div className="text-xs text-gray-500 capitalize">{type}</div>
+              <div key={type} className="bg-slate-900/50 rounded p-2 text-center border border-slate-800">
+                <span className="material-symbols-outlined text-lg md:text-xl text-slate-300">
+                  {VEHICLE_ICONS[type] ?? "directions_car"}
+                </span>
+                <div className="text-base md:text-lg font-bold text-white">{count}</div>
+                <div className="text-xs text-muted capitalize">{type}</div>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs md:text-sm text-gray-600">
-            <span>Model: <strong>{status.model_name}</strong></span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs md:text-sm text-slate-400">
+            <span>Model: <strong className="text-slate-200">{status.model_name}</strong></span>
             <span>Frames: {status.frame_count}</span>
             <span>Total: {status.detections_total}</span>
             <span>In: {status.line_in} | Out: {status.line_out}</span>
           </div>
 
           {status.last_update && (
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500">
               Last update:{" "}
               {new Date(status.last_update).toLocaleTimeString("id-ID")}
             </p>
@@ -286,21 +282,23 @@ export default function LiveMonitor({ cameraId }: Props) {
       {/* Real-time detection feed */}
       {recentDetections.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-600 mb-2">
+          <h4 className="text-sm font-semibold text-slate-400 mb-2">
             Real-time Feed
           </h4>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {recentDetections.map((det, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 text-xs bg-gray-50 rounded px-2 py-1"
+                className="flex items-center gap-2 text-xs bg-slate-900/50 rounded px-2 py-1 border border-slate-800/50"
               >
-                <span className="text-gray-400">
+                <span className="text-slate-500">
                   {new Date(det.timestamp).toLocaleTimeString("id-ID")}
                 </span>
                 {det.detections.map((d, j) => (
-                  <span key={j} className="capitalize">
-                    {VEHICLE_ICONS[d.vehicle_type] ?? "\u{1F699}"}{" "}
+                  <span key={j} className="capitalize text-slate-300">
+                    <span className="material-symbols-outlined text-sm align-middle mr-0.5">
+                      {VEHICLE_ICONS[d.vehicle_type] ?? "directions_car"}
+                    </span>
                     {d.vehicle_type} ({(d.confidence * 100).toFixed(0)}%)
                   </span>
                 ))}

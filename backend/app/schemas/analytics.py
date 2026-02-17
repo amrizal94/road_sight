@@ -27,6 +27,12 @@ class HeatmapPoint(BaseModel):
     total_count: int
 
 
+class SummaryCompare(BaseModel):
+    today_total: int
+    yesterday_total: int
+    change_pct: float | None  # None if yesterday_total == 0
+
+
 class TrafficCountOut(BaseModel):
     id: int
     camera_id: int

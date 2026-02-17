@@ -62,22 +62,30 @@ export default function TrafficChart({ data, interval, dateFilter }: Props) {
   const rotateLabels = interval === "5m" || interval === "15m";
 
   return (
-    <div className="bg-white rounded-lg shadow p-3 md:p-4">
-      <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4">{title}</h3>
+    <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4">
+      <h3 className="text-sm md:text-lg font-semibold mb-3 md:mb-4 text-slate-200">{title}</h3>
       <div className="h-52 md:h-72">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#223249" />
           <XAxis
             dataKey="time_label"
             angle={rotateLabels ? -45 : 0}
             textAnchor={rotateLabels ? "end" : "middle"}
             height={rotateLabels ? 60 : 30}
-            tick={{ fontSize: rotateLabels ? 10 : 12 }}
+            tick={{ fontSize: rotateLabels ? 10 : 12, fill: "#90a9cb" }}
+            stroke="#334155"
           />
-          <YAxis />
-          <Tooltip />
-          <Legend />
+          <YAxis tick={{ fill: "#90a9cb" }} stroke="#334155" />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#1a2332",
+              border: "1px solid #334155",
+              borderRadius: "8px",
+              color: "#e2e8f0",
+            }}
+          />
+          <Legend wrapperStyle={{ color: "#90a9cb" }} />
           {vehicleTypes.map((vt) => (
             <Bar
               key={vt}

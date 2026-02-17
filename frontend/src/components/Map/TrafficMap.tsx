@@ -28,7 +28,6 @@ function getColor(count: number) {
 /** Flies the map to a camera location when focusCamera changes */
 function FlyToCamera({ camera }: { camera: Camera | null }) {
   const map = useMap();
-  const markerRefs = useRef<Record<number, L.CircleMarker>>({});
 
   useEffect(() => {
     if (!camera) return;
@@ -43,6 +42,7 @@ interface Props {
   cameras?: Camera[];
   center?: [number, number];
   focusCamera?: Camera | null;
+  className?: string;
 }
 
 export default function TrafficMap({
@@ -50,6 +50,7 @@ export default function TrafficMap({
   cameras = [],
   center = [-6.2, 106.85],
   focusCamera = null,
+  className,
 }: Props) {
   const markerRefs = useRef<Record<number, L.CircleMarker>>({});
 
@@ -70,15 +71,15 @@ export default function TrafficMap({
   }
 
   return (
-    <div className="h-72 sm:h-96 md:h-[500px] w-full rounded-lg shadow overflow-hidden">
+    <div className={className ?? "h-72 sm:h-96 md:h-[500px] w-full rounded-lg overflow-hidden border border-slate-800"}>
     <MapContainer
       center={center}
       zoom={12}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       />
       <FlyToCamera camera={focusCamera} />
       {points.map((p) => (
@@ -109,7 +110,7 @@ export default function TrafficMap({
             <br />
             <Link
               to={`/cameras/${p.camera_id}`}
-              className="text-blue-600 underline"
+              className="text-primary underline"
             >
               View Details
             </Link>

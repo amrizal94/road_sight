@@ -10,7 +10,7 @@ from ..database import get_db
 from ..models.camera import Camera
 from ..models.detection import DetectionEvent
 from ..models.traffic_count import TrafficCount
-from ..schemas.analytics import HeatmapPoint, HourlyCount, TimeIntervalCount, VehicleSummary
+from ..schemas.analytics import HeatmapPoint, HourlyCount, SummaryCompare, TimeIntervalCount, VehicleSummary
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -27,6 +27,41 @@ def get_summary(db: Session = Depends(get_db)):
         .all()
     )
     return [VehicleSummary(vehicle_type=r[0], total_count=int(r[1])) for r in rows]
+
+
+@router.get("/summary-compare", response_model=SummaryCompare)
+def get_summary_compare(db: Session = Depends(get_db)):
+    """Compare today's total detections vs yesterday's."""
+    tz = settings.timezone
+    local_now = datetime.now(ZoneInfo(tz))
+    today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_start = today_start - timedelta(days=1)
+
+    today_total = (
+        db.query(func.count(DetectionEvent.id))
+        .filter(DetectionEvent.timestamp >= today_start)
+        .scalar()
+    ) or 0
+
+    yesterday_total = (
+        db.query(func.count(DetectionEvent.id))
+        .filter(
+            DetectionEvent.timestamp >= yesterday_start,
+            DetectionEvent.timestamp < today_start,
+        )
+        .scalar()
+    ) or 0
+
+    if yesterday_total > 0:
+        change_pct = round((today_total - yesterday_total) / yesterday_total * 100, 1)
+    else:
+        change_pct = None
+
+    return SummaryCompare(
+        today_total=today_total,
+        yesterday_total=yesterday_total,
+        change_pct=change_pct,
+    )
 
 
 @router.get("/hourly/{camera_id}", response_model=list[HourlyCount])

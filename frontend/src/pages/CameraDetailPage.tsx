@@ -62,7 +62,6 @@ export default function CameraDetailPage() {
     setLastRefresh(new Date());
   }, [cameraId, interval, dateFilter]);
 
-  // Initial load + refetch on filter change
   useEffect(() => {
     getCamera(cameraId).then((r) => setCamera(r.data));
   }, [cameraId]);
@@ -71,7 +70,6 @@ export default function CameraDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  // Poll live status to auto-enable refresh
   useEffect(() => {
     let active = true;
     const check = async () => {
@@ -93,7 +91,6 @@ export default function CameraDetailPage() {
     };
   }, [cameraId]);
 
-  // Auto-refresh polling (15s)
   useEffect(() => {
     if (autoRefreshRef.current) {
       globalThis.clearInterval(autoRefreshRef.current);
@@ -110,17 +107,17 @@ export default function CameraDetailPage() {
     };
   }, [isAutoRefresh, fetchData]);
 
-  if (!camera) return <div>Loading...</div>;
+  if (!camera) return <div className="text-slate-400">Loading...</div>;
 
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center gap-3">
-        <h2 className="text-xl md:text-2xl font-bold truncate">{camera.name}</h2>
+        <h2 className="text-xl md:text-2xl font-bold truncate text-white">{camera.name}</h2>
         <span
           className={`px-2 py-1 rounded text-xs md:text-sm shrink-0 ${
             camera.status === "active"
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-500"
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-slate-800 text-slate-500"
           }`}
         >
           {camera.status}
@@ -131,33 +128,32 @@ export default function CameraDetailPage() {
       <LiveMonitor cameraId={cameraId} />
 
       {/* Camera Location Mini Map */}
-      <div className="bg-white rounded-lg shadow p-3 md:p-4">
-        <h3 className="text-base md:text-lg font-semibold mb-3">Camera Location</h3>
+      <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4">
+        <h3 className="text-base md:text-lg font-semibold mb-3 text-slate-200">Camera Location</h3>
         <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-          <div className="flex-1 h-52 md:h-72">
+          <div className="flex-1 h-52 md:h-72 rounded-lg overflow-hidden border border-slate-800">
             <MapContainer
               center={[camera.latitude, camera.longitude]}
               zoom={15}
               style={{ height: "100%", width: "100%" }}
-              className="rounded-lg"
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/">OSM</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               />
               <Marker position={[camera.latitude, camera.longitude]}>
                 <Popup>{camera.name}</Popup>
               </Marker>
             </MapContainer>
           </div>
-          <div className="flex flex-row md:flex-col justify-center gap-2 text-sm text-gray-600 md:w-48">
-            <div className="bg-gray-50 rounded p-3 flex-1 md:flex-none">
-              <span className="block text-xs text-gray-400">Latitude</span>
-              <span className="font-mono font-semibold text-gray-800 text-xs md:text-sm">{camera.latitude}</span>
+          <div className="flex flex-row md:flex-col justify-center gap-2 text-sm md:w-48">
+            <div className="bg-slate-900/50 border border-slate-800 rounded p-3 flex-1 md:flex-none">
+              <span className="block text-xs text-muted">Latitude</span>
+              <span className="font-mono font-semibold text-slate-200 text-xs md:text-sm">{camera.latitude}</span>
             </div>
-            <div className="bg-gray-50 rounded p-3 flex-1 md:flex-none">
-              <span className="block text-xs text-gray-400">Longitude</span>
-              <span className="font-mono font-semibold text-gray-800 text-xs md:text-sm">{camera.longitude}</span>
+            <div className="bg-slate-900/50 border border-slate-800 rounded p-3 flex-1 md:flex-none">
+              <span className="block text-xs text-muted">Longitude</span>
+              <span className="font-mono font-semibold text-slate-200 text-xs md:text-sm">{camera.longitude}</span>
             </div>
           </div>
         </div>
@@ -166,17 +162,16 @@ export default function CameraDetailPage() {
       {/* Traffic Chart with controls */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-          {/* Interval + Date filter */}
           <div className="flex flex-wrap gap-2">
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
               {INTERVALS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setInterval(opt.value)}
                   className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                     interval === opt.value
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-primary text-white"
+                      : "bg-card-dark text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   {opt.label}
@@ -184,15 +179,15 @@ export default function CameraDetailPage() {
               ))}
             </div>
 
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
               {DATE_FILTERS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setDateFilter(opt.value)}
                   className={`px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                     dateFilter === opt.value
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
+                      ? "bg-primary text-white"
+                      : "bg-card-dark text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   {opt.label}
@@ -202,7 +197,7 @@ export default function CameraDetailPage() {
 
             <button
               onClick={fetchData}
-              className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-card-dark border border-slate-700 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
             >
               Refresh
             </button>
@@ -211,16 +206,16 @@ export default function CameraDetailPage() {
           {/* Status indicators */}
           <div className="flex items-center gap-3 sm:ml-auto">
             {isAutoRefresh && (
-              <span className="flex items-center gap-1.5 text-xs text-green-600">
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
                 Auto-updating
               </span>
             )}
             {lastRefresh && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-slate-500">
                 {lastRefresh.toLocaleTimeString("id-ID")}
               </span>
             )}
@@ -231,11 +226,11 @@ export default function CameraDetailPage() {
       </div>
 
       {/* Recent Detections */}
-      <div className="bg-white rounded-lg shadow p-3 md:p-4">
+      <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base md:text-lg font-semibold">Recent Detections</h3>
+          <h3 className="text-base md:text-lg font-semibold text-slate-200">Recent Detections</h3>
           {isAutoRefresh && (
-            <span className="text-xs text-green-600">Live</span>
+            <span className="text-xs text-emerald-400">Live</span>
           )}
         </div>
 
@@ -243,7 +238,7 @@ export default function CameraDetailPage() {
         <div className="hidden sm:block">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b">
+              <tr className="border-b border-slate-700 text-muted">
                 <th className="py-2">Type</th>
                 <th className="py-2">Confidence</th>
                 <th className="py-2">Time</th>
@@ -251,10 +246,10 @@ export default function CameraDetailPage() {
             </thead>
             <tbody>
               {detections.map((d) => (
-                <tr key={d.id} className="border-b">
-                  <td className="py-2 capitalize">{d.vehicle_type}</td>
-                  <td className="py-2">{(d.confidence * 100).toFixed(1)}%</td>
-                  <td className="py-2 text-gray-500">
+                <tr key={d.id} className="border-b border-slate-800">
+                  <td className="py-2 capitalize text-slate-200">{d.vehicle_type}</td>
+                  <td className="py-2 text-slate-300">{(d.confidence * 100).toFixed(1)}%</td>
+                  <td className="py-2 text-muted">
                     {new Date(d.timestamp).toLocaleString("id-ID")}
                   </td>
                 </tr>
@@ -266,12 +261,12 @@ export default function CameraDetailPage() {
         {/* Mobile list */}
         <div className="sm:hidden space-y-2">
           {detections.map((d) => (
-            <div key={d.id} className="flex items-center justify-between border-b pb-2 text-sm">
+            <div key={d.id} className="flex items-center justify-between border-b border-slate-800 pb-2 text-sm">
               <div>
-                <span className="capitalize font-medium">{d.vehicle_type}</span>
-                <span className="text-gray-400 ml-2">{(d.confidence * 100).toFixed(0)}%</span>
+                <span className="capitalize font-medium text-slate-200">{d.vehicle_type}</span>
+                <span className="text-muted ml-2">{(d.confidence * 100).toFixed(0)}%</span>
               </div>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-slate-500">
                 {new Date(d.timestamp).toLocaleTimeString("id-ID")}
               </span>
             </div>

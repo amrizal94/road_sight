@@ -42,14 +42,11 @@ export default function MapPage() {
   const [gmapsUrl, setGmapsUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Edit state
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ name: "", latitude: "", longitude: "" });
 
-  // Focus camera on map
   const [focusCamera, setFocusCamera] = useState<Camera | null>(null);
 
-  // Live monitor statuses
   const [liveMonitors, setLiveMonitors] = useState<LiveStatus[]>([]);
 
   const fetchData = (retries = 2) => {
@@ -154,19 +151,19 @@ export default function MapPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl md:text-2xl font-bold">Traffic Map</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-white">Traffic Map</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded hover:bg-blue-700 text-xs md:text-sm"
+          className="bg-primary text-white px-3 md:px-4 py-2 rounded-lg hover:bg-blue-700 text-xs md:text-sm transition-colors"
         >
           {showForm ? "Cancel" : "+ Add Camera"}
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow p-3 md:p-4 space-y-3">
+        <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4 space-y-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-muted mb-1">
               Paste Google Maps URL (auto-fill name & coordinates)
             </label>
             <input
@@ -174,49 +171,49 @@ export default function MapPage() {
               placeholder="https://www.google.com/maps/place/..."
               value={gmapsUrl}
               onChange={(e) => handlePasteUrl(e.target.value)}
-              className="border rounded px-3 py-2 text-sm w-full"
+              className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 text-sm w-full placeholder-slate-500 focus:border-primary focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
             <div className="flex-1 min-w-0">
-              <label className="block text-xs text-gray-500 mb-1">Name</label>
+              <label className="block text-xs text-muted mb-1">Name</label>
               <input
                 type="text"
                 placeholder="Cam Sudirman"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="border rounded px-3 py-2 text-sm w-full"
+                className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 text-sm w-full placeholder-slate-500 focus:border-primary focus:outline-none"
               />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                <label className="block text-xs text-muted mb-1">Latitude</label>
                 <input
                   type="number"
                   step="any"
                   placeholder="-6.2088"
                   value={form.latitude}
                   onChange={(e) => setForm({ ...form, latitude: e.target.value })}
-                  className="border rounded px-3 py-2 text-sm w-full"
+                  className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 text-sm w-full placeholder-slate-500 focus:border-primary focus:outline-none"
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                <label className="block text-xs text-muted mb-1">Longitude</label>
                 <input
                   type="number"
                   step="any"
                   placeholder="106.8456"
                   value={form.longitude}
                   onChange={(e) => setForm({ ...form, longitude: e.target.value })}
-                  className="border rounded px-3 py-2 text-sm w-full"
+                  className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 text-sm w-full placeholder-slate-500 focus:border-primary focus:outline-none"
                 />
               </div>
             </div>
             <button
               onClick={handleAdd}
               disabled={loading}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm disabled:opacity-50 w-full sm:w-auto"
+              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 text-sm disabled:opacity-50 w-full sm:w-auto transition-colors"
             >
               {loading ? "Adding..." : "Add Camera"}
             </button>
@@ -228,14 +225,14 @@ export default function MapPage() {
 
       {/* Camera List */}
       {cameras.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-3 md:p-4">
-          <h3 className="text-lg font-semibold mb-3">Camera List</h3>
+        <div className="bg-card-dark border border-slate-800 rounded-lg p-3 md:p-4">
+          <h3 className="text-lg font-semibold mb-3 text-slate-200">Camera List</h3>
 
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b text-gray-500">
+                <tr className="border-b border-slate-700 text-muted">
                   <th className="py-2 pr-4">Name</th>
                   <th className="py-2 pr-4">Latitude</th>
                   <th className="py-2 pr-4">Longitude</th>
@@ -247,10 +244,10 @@ export default function MapPage() {
                 {cameras.map((cam) => (
                   <tr
                     key={cam.id}
-                    className={`border-b cursor-pointer transition-colors ${
+                    className={`border-b border-slate-800 cursor-pointer transition-colors ${
                       focusCamera?.id === cam.id
-                        ? "bg-blue-50"
-                        : "hover:bg-gray-50"
+                        ? "bg-primary/10"
+                        : "hover:bg-slate-800/50"
                     }`}
                     onClick={() => editingId !== cam.id && setFocusCamera(cam)}
                   >
@@ -261,7 +258,7 @@ export default function MapPage() {
                             type="text"
                             value={editForm.name}
                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            className="border rounded px-2 py-1 text-sm w-full"
+                            className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1 text-sm w-full focus:border-primary focus:outline-none"
                           />
                         </td>
                         <td className="py-2 pr-4">
@@ -270,7 +267,7 @@ export default function MapPage() {
                             step="any"
                             value={editForm.latitude}
                             onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })}
-                            className="border rounded px-2 py-1 text-sm w-28"
+                            className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1 text-sm w-28 focus:border-primary focus:outline-none"
                           />
                         </td>
                         <td className="py-2 pr-4">
@@ -279,22 +276,22 @@ export default function MapPage() {
                             step="any"
                             value={editForm.longitude}
                             onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })}
-                            className="border rounded px-2 py-1 text-sm w-28"
+                            className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1 text-sm w-28 focus:border-primary focus:outline-none"
                           />
                         </td>
-                        <td className="py-2 pr-4">{cam.status}</td>
+                        <td className="py-2 pr-4 text-slate-400">{cam.status}</td>
                         <td className="py-2">
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditSave(cam.id)}
                               disabled={loading}
-                              className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 disabled:opacity-50"
+                              className="bg-emerald-600 text-white px-3 py-1 rounded text-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                             >
                               Save
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="bg-gray-300 text-gray-700 px-3 py-1 rounded text-xs hover:bg-gray-400"
+                              className="bg-slate-700 text-slate-300 px-3 py-1 rounded text-xs hover:bg-slate-600 transition-colors"
                             >
                               Cancel
                             </button>
@@ -303,20 +300,20 @@ export default function MapPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 pr-4 font-medium">{cam.name}</td>
-                        <td className="py-2 pr-4 font-mono text-gray-600">{cam.latitude}</td>
-                        <td className="py-2 pr-4 font-mono text-gray-600">{cam.longitude}</td>
+                        <td className="py-2 pr-4 font-medium text-slate-200">{cam.name}</td>
+                        <td className="py-2 pr-4 font-mono text-slate-400">{cam.latitude}</td>
+                        <td className="py-2 pr-4 font-mono text-slate-400">{cam.longitude}</td>
                         <td className="py-2 pr-4">
                           {getMonitorStatus(cam.id) === "monitoring" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-400">
                               <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600" />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
                               </span>
                               Live
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">
+                            <span className="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-500">
                               Idle
                             </span>
                           )}
@@ -325,13 +322,13 @@ export default function MapPage() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(cam)}
-                              className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs hover:bg-blue-200"
+                              className="bg-primary/20 text-primary px-3 py-1 rounded text-xs hover:bg-primary/30 transition-colors"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDelete(cam.id, cam.name)}
-                              className="bg-red-100 text-red-700 px-3 py-1 rounded text-xs hover:bg-red-200"
+                              className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-500/30 transition-colors"
                             >
                               Delete
                             </button>
@@ -352,8 +349,8 @@ export default function MapPage() {
                 key={cam.id}
                 className={`border rounded-lg p-3 transition-colors ${
                   focusCamera?.id === cam.id
-                    ? "border-blue-400 bg-blue-50"
-                    : "border-gray-200"
+                    ? "border-primary bg-primary/10"
+                    : "border-slate-700"
                 }`}
                 onClick={() => editingId !== cam.id && setFocusCamera(cam)}
               >
@@ -363,7 +360,7 @@ export default function MapPage() {
                       type="text"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      className="border rounded px-2 py-1.5 text-sm w-full"
+                      className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1.5 text-sm w-full placeholder-slate-500 focus:border-primary focus:outline-none"
                       placeholder="Name"
                     />
                     <div className="flex gap-2">
@@ -372,7 +369,7 @@ export default function MapPage() {
                         step="any"
                         value={editForm.latitude}
                         onChange={(e) => setEditForm({ ...editForm, latitude: e.target.value })}
-                        className="border rounded px-2 py-1.5 text-sm flex-1"
+                        className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1.5 text-sm flex-1 placeholder-slate-500 focus:border-primary focus:outline-none"
                         placeholder="Latitude"
                       />
                       <input
@@ -380,7 +377,7 @@ export default function MapPage() {
                         step="any"
                         value={editForm.longitude}
                         onChange={(e) => setEditForm({ ...editForm, longitude: e.target.value })}
-                        className="border rounded px-2 py-1.5 text-sm flex-1"
+                        className="bg-card-dark-alt border border-slate-700 text-white rounded px-2 py-1.5 text-sm flex-1 placeholder-slate-500 focus:border-primary focus:outline-none"
                         placeholder="Longitude"
                       />
                     </div>
@@ -388,13 +385,13 @@ export default function MapPage() {
                       <button
                         onClick={() => handleEditSave(cam.id)}
                         disabled={loading}
-                        className="bg-green-600 text-white px-3 py-1.5 rounded text-xs hover:bg-green-700 disabled:opacity-50 flex-1"
+                        className="bg-emerald-600 text-white px-3 py-1.5 rounded text-xs hover:bg-emerald-700 disabled:opacity-50 flex-1 transition-colors"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
-                        className="bg-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs hover:bg-gray-400 flex-1"
+                        className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded text-xs hover:bg-slate-600 flex-1 transition-colors"
                       >
                         Cancel
                       </button>
@@ -403,34 +400,34 @@ export default function MapPage() {
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">{cam.name}</span>
+                      <span className="font-medium text-sm text-slate-200">{cam.name}</span>
                       {getMonitorStatus(cam.id) === "monitoring" ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-400">
                           <span className="relative flex h-1.5 w-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-600" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-600" />
                           </span>
                           Live
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">
+                        <span className="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-500">
                           Idle
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-500 font-mono mb-2">
+                    <div className="text-xs text-muted font-mono mb-2">
                       {cam.latitude}, {cam.longitude}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEdit(cam); }}
-                        className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs hover:bg-blue-200"
+                        className="bg-primary/20 text-primary px-3 py-1 rounded text-xs hover:bg-primary/30 transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDelete(cam.id, cam.name); }}
-                        className="bg-red-100 text-red-700 px-3 py-1 rounded text-xs hover:bg-red-200"
+                        className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-500/30 transition-colors"
                       >
                         Delete
                       </button>

@@ -58,7 +58,14 @@ export const deleteCamera = (id: number) =>
 export const getDetections = (params?: Record<string, string | number>) =>
   api.get<Detection[]>("/detections", { params });
 
+export interface SummaryCompare {
+  today_total: number;
+  yesterday_total: number;
+  change_pct: number | null;
+}
+
 export const getSummary = () => api.get<VehicleSummary[]>("/analytics/summary");
+export const getSummaryCompare = () => api.get<SummaryCompare>("/analytics/summary-compare");
 export const getHourly = (cameraId: number) =>
   api.get<HourlyCount[]>(`/analytics/hourly/${cameraId}`);
 export const getTrafficData = (

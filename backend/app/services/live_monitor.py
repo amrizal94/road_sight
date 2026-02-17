@@ -4,6 +4,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from queue import Queue, Empty, Full
 from zoneinfo import ZoneInfo
 
@@ -68,10 +69,19 @@ def _draw_detections(frame: np.ndarray, tracked: list[dict], line_y: int) -> Non
 def _get_stream_url(youtube_url: str) -> str:
     cmd = ["yt-dlp", "-g", "-f", "b", "--js-runtimes", "node", "--remote-components", "ejs:github"]
     if settings.ytdlp_cookies_file:
-        cmd.extend(["--cookies", settings.ytdlp_cookies_file])
-    else:
+        # Resolve absolute path relative to this file's directory (backend/)
+        cookies_path = Path(settings.ytdlp_cookies_file)
+        if not cookies_path.is_absolute():
+            cookies_path = Path(__file__).resolve().parent.parent.parent / cookies_path
+        if cookies_path.exists():
+            cmd.extend(["--cookies", str(cookies_path)])
+            logger.info(f"yt-dlp using cookies: {cookies_path}")
+        else:
+            logger.warning(f"Cookies file not found: {cookies_path}, trying without cookies")
+    elif settings.ytdlp_cookies_browser:
         cmd.extend(["--cookies-from-browser", settings.ytdlp_cookies_browser])
     cmd.append(youtube_url)
+    logger.debug(f"yt-dlp cmd: {' '.join(cmd)}")
     result = subprocess.run(
         cmd, capture_output=True, text=True, timeout=30,
     )
