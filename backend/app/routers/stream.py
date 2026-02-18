@@ -5,7 +5,7 @@ import subprocess
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.params import File, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
@@ -184,6 +184,22 @@ async def _mjpeg_generator(camera_id: int, frame_key: str):
             monitor["_viewers"] = max(0, monitor.get("_viewers", 1) - 1)
             if frame_key == "_raw_frame":
                 monitor["_raw_requested"] = False
+
+
+@router.get("/live/snapshot/{camera_id}")
+async def live_snapshot(camera_id: int):
+    """Return a single JPEG frame — for thumbnail use, no persistent connection."""
+    monitor = active_monitors.get(camera_id)
+    if not monitor or monitor["status"] not in ("running", "starting"):
+        raise HTTPException(status_code=404, detail="No active monitor for this camera")
+    frame = monitor.get("_annotated_frame")
+    if not frame:
+        raise HTTPException(status_code=503, detail="No frame available yet")
+    return Response(
+        content=frame,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-store, no-cache"},
+    )
 
 
 @router.get("/live/feed/{camera_id}")

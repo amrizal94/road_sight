@@ -16,16 +16,26 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
 @router.get("/summary", response_model=list[VehicleSummary])
-def get_summary(db: Session = Depends(get_db)):
-    # Count directly from DetectionEvent for real-time accuracy
-    rows = (
-        db.query(
-            DetectionEvent.vehicle_type,
-            func.count(DetectionEvent.id).label("total_count"),
-        )
-        .group_by(DetectionEvent.vehicle_type)
-        .all()
+def get_summary(
+    date_filter: str = Query("today", pattern="^(today|24h|all)$"),
+    db: Session = Depends(get_db),
+):
+    """Vehicle count breakdown. Default: today only."""
+    tz = settings.timezone
+    local_now = datetime.now(ZoneInfo(tz))
+
+    q = db.query(
+        DetectionEvent.vehicle_type,
+        func.count(DetectionEvent.id).label("total_count"),
     )
+
+    if date_filter == "today":
+        today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        q = q.filter(DetectionEvent.timestamp >= today_start)
+    elif date_filter == "24h":
+        q = q.filter(DetectionEvent.timestamp >= local_now - timedelta(hours=24))
+
+    rows = q.group_by(DetectionEvent.vehicle_type).all()
     return [VehicleSummary(vehicle_type=r[0], total_count=int(r[1])) for r in rows]
 
 
@@ -37,6 +47,9 @@ def get_summary_compare(db: Session = Depends(get_db)):
     today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_start = today_start - timedelta(days=1)
 
+    # Compare same time window: today 00:00→now vs yesterday 00:00→same time yesterday
+    yesterday_same_time = local_now - timedelta(days=1)
+
     today_total = (
         db.query(func.count(DetectionEvent.id))
         .filter(DetectionEvent.timestamp >= today_start)
@@ -47,7 +60,7 @@ def get_summary_compare(db: Session = Depends(get_db)):
         db.query(func.count(DetectionEvent.id))
         .filter(
             DetectionEvent.timestamp >= yesterday_start,
-            DetectionEvent.timestamp < today_start,
+            DetectionEvent.timestamp <= yesterday_same_time,
         )
         .scalar()
     ) or 0

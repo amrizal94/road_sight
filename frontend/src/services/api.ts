@@ -120,3 +120,13 @@ export const getLiveStatus = (cameraId: number) =>
 
 export const getAllLiveMonitors = () =>
   api.get<LiveStatus[]>("/stream/live/all");
+
+export interface SystemHealth {
+  cpu_pct: number;
+  ram_pct: number;
+  ram_used_mb: number;
+  ram_total_mb: number;
+  uptime_seconds: number;
+}
+
+export const getSystemHealth = () => api.get<SystemHealth>("/system/health");

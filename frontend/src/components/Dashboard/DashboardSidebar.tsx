@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { VehicleSummary, TimeIntervalCount, getSummaryCompare, SummaryCompare } from "../../services/api";
+import { VehicleSummary, TimeIntervalCount, getSummaryCompare, SummaryCompare, getSystemHealth, SystemHealth } from "../../services/api";
 
 const VEHICLE_ICONS: Record<string, string> = {
   car: "directions_car",
@@ -25,6 +25,14 @@ const VEHICLE_COLORS: Record<string, string> = {
   bicycle: "text-purple-400",
 };
 
+const VEHICLE_BAR_COLORS: Record<string, string> = {
+  car: "bg-blue-400",
+  motorcycle: "bg-amber-400",
+  bus: "bg-emerald-400",
+  truck: "bg-red-400",
+  bicycle: "bg-purple-400",
+};
+
 type FlowFilter = "all" | "car" | "motorcycle" | "truck";
 
 const FLOW_FILTERS: { key: FlowFilter; label: string }[] = [
@@ -33,6 +41,54 @@ const FLOW_FILTERS: { key: FlowFilter; label: string }[] = [
   { key: "motorcycle", label: "MOTORCYCLES" },
   { key: "truck", label: "TRUCKS" },
 ];
+
+function formatUptime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function barColor(pct: number): string {
+  if (pct >= 90) return "bg-red-500";
+  if (pct >= 70) return "bg-amber-500";
+  return "bg-emerald-500";
+}
+
+function ResourceBar({
+  icon,
+  label,
+  pct,
+  detail,
+}: {
+  icon: string;
+  label: string;
+  pct: number | null;
+  detail: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span className={`material-symbols-outlined text-lg ${
+            pct === null ? "text-slate-600"
+            : pct >= 90 ? "text-red-400"
+            : pct >= 70 ? "text-amber-400"
+            : "text-emerald-400"
+          }`}>{icon}</span>
+          <span className="text-sm text-slate-300">{label}</span>
+        </div>
+        <span className="text-xs font-semibold tabular-nums text-slate-300">{detail}</span>
+      </div>
+      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${pct !== null ? barColor(pct) : "bg-slate-700"}`}
+          style={{ width: pct !== null ? `${pct}%` : "0%" }}
+        />
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   summary: VehicleSummary[];
@@ -43,12 +99,21 @@ interface Props {
 export default function DashboardSidebar({ summary, trafficData, hasLiveMonitor }: Props) {
   const totalCount = summary.reduce((acc, s) => acc + s.total_count, 0);
   const [compare, setCompare] = useState<SummaryCompare | null>(null);
+  const [sysHealth, setSysHealth] = useState<SystemHealth | null>(null);
   const [flowFilter, setFlowFilter] = useState<FlowFilter>("all");
 
   useEffect(() => {
     getSummaryCompare()
       .then((r) => setCompare(r.data))
       .catch(() => {});
+  }, []);
+
+  // Poll system health every 5 seconds
+  useEffect(() => {
+    const fetch = () => getSystemHealth().then((r) => setSysHealth(r.data)).catch(() => {});
+    fetch();
+    const iv = window.setInterval(fetch, 5_000);
+    return () => window.clearInterval(iv);
   }, []);
 
   // Pivot traffic data for mini chart
@@ -89,7 +154,7 @@ export default function DashboardSidebar({ summary, trafficData, hasLiveMonitor 
           <div className="text-4xl font-bold text-white tabular-nums">
             {totalCount.toLocaleString()}
           </div>
-          <div className="text-sm text-muted mt-1">Total Vehicles Detected</div>
+          <div className="text-sm text-muted mt-1">Total Vehicles (Today)</div>
           {compare && compare.change_pct !== null && (
             <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
               compare.change_pct >= 0
@@ -100,25 +165,40 @@ export default function DashboardSidebar({ summary, trafficData, hasLiveMonitor 
                 {compare.change_pct >= 0 ? "trending_up" : "trending_down"}
               </span>
               {compare.change_pct >= 0 ? "+" : ""}{compare.change_pct}%
+              <span className="font-normal text-slate-500 ml-1">vs yesterday</span>
             </div>
           )}
         </div>
 
-        {/* Breakdown per type */}
-        <div className="space-y-2">
-          {summary.map((item) => (
-            <div key={item.vehicle_type} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`material-symbols-outlined text-lg ${VEHICLE_COLORS[item.vehicle_type] ?? "text-slate-400"}`}>
-                  {VEHICLE_ICONS[item.vehicle_type] ?? "directions_car"}
-                </span>
-                <span className="text-sm text-slate-300 capitalize">{item.vehicle_type}</span>
+        {/* Breakdown per type with progress bars */}
+        <div className="space-y-3">
+          {summary.map((item) => {
+            const pct = totalCount > 0 ? (item.total_count / totalCount) * 100 : 0;
+            return (
+              <div key={item.vehicle_type}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`material-symbols-outlined text-lg ${VEHICLE_COLORS[item.vehicle_type] ?? "text-slate-400"}`}>
+                      {VEHICLE_ICONS[item.vehicle_type] ?? "directions_car"}
+                    </span>
+                    <span className="text-sm text-slate-300 capitalize">{item.vehicle_type}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 tabular-nums">{pct.toFixed(1)}%</span>
+                    <span className="text-sm font-semibold text-white tabular-nums">
+                      {item.total_count.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${VEHICLE_BAR_COLORS[item.vehicle_type] ?? "bg-slate-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
               </div>
-              <span className="text-sm font-semibold text-white tabular-nums">
-                {item.total_count.toLocaleString()}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -184,16 +264,42 @@ export default function DashboardSidebar({ summary, trafficData, hasLiveMonitor 
 
       {/* System Health */}
       <div className="bg-card-dark border border-slate-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          System Health
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            System Health
+          </h3>
+          {sysHealth && (
+            <span className="text-[10px] text-slate-500">
+              up {formatUptime(sysHealth.uptime_seconds)}
+            </span>
+          )}
+        </div>
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          {/* CPU Usage */}
+          <ResourceBar
+            icon="memory"
+            label="CPU Usage"
+            pct={sysHealth?.cpu_pct ?? null}
+            detail={sysHealth ? `${sysHealth.cpu_pct}%` : "—"}
+          />
+          {/* RAM Usage */}
+          <ResourceBar
+            icon="storage"
+            label="RAM Usage"
+            pct={sysHealth?.ram_pct ?? null}
+            detail={sysHealth
+              ? `${sysHealth.ram_used_mb.toLocaleString()} / ${sysHealth.ram_total_mb.toLocaleString()} MB`
+              : "—"}
+          />
+          {/* Static status badges */}
+          <div className="flex items-center justify-between pt-1 border-t border-slate-800">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg text-emerald-400">memory</span>
+              <span className="material-symbols-outlined text-lg text-emerald-400">smart_toy</span>
               <span className="text-sm text-slate-300">AI Engine</span>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Active</span>
+            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+              {hasLiveMonitor ? "Active" : "Standby"}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -201,13 +307,6 @@ export default function DashboardSidebar({ summary, trafficData, hasLiveMonitor 
               <span className="text-sm text-slate-300">Cloud Sync</span>
             </div>
             <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">Connected</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg text-amber-400">storage</span>
-              <span className="text-sm text-slate-300">Database</span>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Healthy</span>
           </div>
         </div>
       </div>

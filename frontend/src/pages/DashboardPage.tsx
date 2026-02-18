@@ -83,6 +83,7 @@ export default function DashboardPage() {
           <TrafficMap
             points={points}
             cameras={cameras}
+            liveMonitors={liveMonitors}
             className="flex-1 min-h-[300px] w-full rounded-lg overflow-hidden border border-slate-800"
           />
           {/* Camera strip below map */}

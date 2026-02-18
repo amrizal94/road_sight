@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, LiveStatus } from "../../services/api";
+
+const SNAPSHOT_INTERVAL = 10_000; // refresh thumbnail every 10s
 
 interface Props {
   cameras: Camera[];
@@ -8,6 +11,13 @@ interface Props {
 
 export default function CameraStrip({ cameras, liveMonitors }: Props) {
   const navigate = useNavigate();
+  const [tick, setTick] = useState(0);
+
+  // Refresh snapshot URLs periodically
+  useEffect(() => {
+    const iv = window.setInterval(() => setTick((t) => t + 1), SNAPSHOT_INTERVAL);
+    return () => window.clearInterval(iv);
+  }, []);
 
   const getMonitorStatus = (cameraId: number) => {
     const m = liveMonitors.find((s) => s.camera_id === cameraId);
@@ -33,7 +43,8 @@ export default function CameraStrip({ cameras, liveMonitors }: Props) {
               <div className="relative h-28 bg-slate-900 flex items-center justify-center">
                 {isLive ? (
                   <img
-                    src={`/api/stream/live/feed/${cam.id}`}
+                    // Snapshot endpoint: 1 JPEG frame, no persistent connection
+                    src={`/api/stream/live/snapshot/${cam.id}?t=${tick}`}
                     alt={cam.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

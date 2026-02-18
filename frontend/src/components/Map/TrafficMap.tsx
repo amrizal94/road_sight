@@ -8,7 +8,7 @@ import {
   useMap,
 } from "react-leaflet";
 import { Link } from "react-router-dom";
-import { Camera, HeatmapPoint } from "../../services/api";
+import { Camera, HeatmapPoint, LiveStatus } from "../../services/api";
 import CongestionLegend from "./CongestionLegend";
 
 // Fix leaflet default icon
@@ -48,6 +48,7 @@ function FlyToCamera({ camera }: { camera: Camera | null }) {
 interface Props {
   points: HeatmapPoint[];
   cameras?: Camera[];
+  liveMonitors?: LiveStatus[];
   center?: [number, number];
   focusCamera?: Camera | null;
   className?: string;
@@ -56,6 +57,7 @@ interface Props {
 export default function TrafficMap({
   points,
   cameras = [],
+  liveMonitors = [],
   center = [-6.2, 106.85],
   focusCamera = null,
   className,
@@ -72,11 +74,14 @@ export default function TrafficMap({
     }
   }, [focusCamera]);
 
-  // Find camera name by id
+  // Lookup maps
   const cameraNames: Record<number, string> = {};
   for (const c of cameras) {
     cameraNames[c.id] = c.name;
   }
+  const liveSet = new Set(
+    liveMonitors.filter((m) => m.status === "running").map((m) => m.camera_id)
+  );
 
   return (
     <div className={className ?? "h-72 sm:h-96 md:h-[500px] w-full rounded-lg overflow-hidden border border-slate-800"}>
@@ -94,6 +99,7 @@ export default function TrafficMap({
       {points.map((p) => {
         const info = getCongestionInfo(p.total_count);
         const isFocused = focusCamera?.id === p.camera_id;
+        const isLive = liveSet.has(p.camera_id);
         const color = isFocused ? "#3b82f6" : info.color;
         const innerRadius = Math.max(8, Math.min(20, p.total_count / 20));
 
@@ -129,22 +135,46 @@ export default function TrafficMap({
                 className: "congestion-marker",
               }}
             >
-              <Popup>
-                <strong>{cameraNames[p.camera_id] ?? `Camera #${p.camera_id}`}</strong>
-                <br />
-                <span
-                  style={{
-                    display: "inline-block",
-                    marginTop: 4,
-                    marginBottom: 4,
-                    padding: "2px 8px",
-                    borderRadius: 9999,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#fff",
-                    background: info.color,
-                  }}
-                >
+              <Popup minWidth={220}>
+                {/* Camera name + live badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <strong style={{ fontSize: 13 }}>
+                    {cameraNames[p.camera_id] ?? `Camera #${p.camera_id}`}
+                  </strong>
+                  {isLive && (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 3,
+                      padding: "1px 6px", borderRadius: 9999,
+                      fontSize: 9, fontWeight: 700, background: "#dc2626", color: "#fff",
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff", display: "inline-block" }} />
+                      LIVE
+                    </span>
+                  )}
+                </div>
+
+                {/* Live stream — only mounts when popup is open, auto-closes connection on close */}
+                {isLive && (
+                  <div style={{ marginBottom: 6, borderRadius: 4, overflow: "hidden", lineHeight: 0 }}>
+                    <img
+                      src={`/api/stream/live/feed/${p.camera_id}`}
+                      alt="Live feed"
+                      style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+                    />
+                  </div>
+                )}
+
+                {/* Congestion badge */}
+                <span style={{
+                  display: "inline-block",
+                  marginBottom: 4,
+                  padding: "2px 8px",
+                  borderRadius: 9999,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "#fff",
+                  background: info.color,
+                }}>
                   {info.label}
                 </span>
                 <br />

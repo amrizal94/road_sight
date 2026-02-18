@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
-from .routers import analytics, cameras, detections, stream
+from .routers import analytics, cameras, detections, stream, system
 from .services.live_monitor import active_monitors, stop_all_monitors
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,7 @@ app.include_router(cameras.router)
 app.include_router(detections.router)
 app.include_router(analytics.router)
 app.include_router(stream.router)
+app.include_router(system.router)
 
 ws_clients: list[WebSocket] = []
 
