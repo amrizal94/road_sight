@@ -64,7 +64,7 @@ export default function Sidebar({ open, onClose }: Props) {
               traffic
             </span>
             <span className="text-lg font-bold text-white tracking-tight">
-              Road Sight
+              STMS
             </span>
           </Link>
         </div>
