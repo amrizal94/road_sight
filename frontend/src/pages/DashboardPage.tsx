@@ -79,6 +79,7 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Map area */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
+          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Traffic Congestion</h2>
           <TrafficMap
             points={points}
             cameras={cameras}

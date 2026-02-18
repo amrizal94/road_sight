@@ -51,6 +51,23 @@ body {
   color: #3b82f6;
 }
 
+/* Congestion pulse ring animation */
+@keyframes congestion-pulse {
+  0% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
+
+.congestion-pulse {
+  animation: congestion-pulse 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Glow effect for inner congestion markers */
+.congestion-marker {
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+}
+
 /* Material Symbols */
 .material-symbols-outlined {
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;

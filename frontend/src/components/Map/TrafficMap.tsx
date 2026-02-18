@@ -9,6 +9,7 @@ import {
 } from "react-leaflet";
 import { Link } from "react-router-dom";
 import { Camera, HeatmapPoint } from "../../services/api";
+import CongestionLegend from "./CongestionLegend";
 
 // Fix leaflet default icon
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -19,10 +20,17 @@ L.Marker.prototype.options.icon = L.icon({
   iconAnchor: [12, 41],
 });
 
-function getColor(count: number) {
-  if (count > 500) return "#ef4444"; // red
-  if (count > 100) return "#f59e0b"; // yellow
-  return "#22c55e"; // green
+interface CongestionInfo {
+  color: string;
+  label: string;
+  level: "low" | "moderate" | "heavy" | "severe";
+}
+
+function getCongestionInfo(count: number): CongestionInfo {
+  if (count > 500) return { color: "#ef4444", label: "Severe", level: "severe" };
+  if (count > 300) return { color: "#f97316", label: "Heavy", level: "heavy" };
+  if (count > 100) return { color: "#f59e0b", label: "Moderate", level: "moderate" };
+  return { color: "#22c55e", label: "Low Traffic", level: "low" };
 }
 
 /** Flies the map to a camera location when focusCamera changes */
@@ -82,41 +90,77 @@ export default function TrafficMap({
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
       />
       <FlyToCamera camera={focusCamera} />
-      {points.map((p) => (
-        <CircleMarker
-          key={p.camera_id}
-          ref={(ref) => {
-            if (ref) markerRefs.current[p.camera_id] = ref;
-          }}
-          center={[p.latitude, p.longitude]}
-          radius={Math.max(8, Math.min(20, p.total_count / 20))}
-          pathOptions={{
-            color:
-              focusCamera?.id === p.camera_id
-                ? "#3b82f6"
-                : getColor(p.total_count),
-            fillColor:
-              focusCamera?.id === p.camera_id
-                ? "#3b82f6"
-                : getColor(p.total_count),
-            fillOpacity: focusCamera?.id === p.camera_id ? 0.9 : 0.7,
-            weight: focusCamera?.id === p.camera_id ? 3 : 1,
-          }}
-        >
-          <Popup>
-            <strong>{cameraNames[p.camera_id] ?? `Camera #${p.camera_id}`}</strong>
-            <br />
-            Total: {p.total_count.toLocaleString()} vehicles
-            <br />
-            <Link
-              to={`/cameras/${p.camera_id}`}
-              className="text-primary underline"
+      <CongestionLegend />
+      {points.map((p) => {
+        const info = getCongestionInfo(p.total_count);
+        const isFocused = focusCamera?.id === p.camera_id;
+        const color = isFocused ? "#3b82f6" : info.color;
+        const innerRadius = Math.max(8, Math.min(20, p.total_count / 20));
+
+        return (
+          <span key={p.camera_id}>
+            {/* Outer pulse ring */}
+            <CircleMarker
+              center={[p.latitude, p.longitude]}
+              radius={innerRadius + 14}
+              pathOptions={{
+                color,
+                fillColor: color,
+                fillOpacity: 0.25,
+                weight: 1,
+                opacity: 0.3,
+                className: "congestion-pulse",
+              }}
+              interactive={false}
+            />
+            {/* Inner marker */}
+            <CircleMarker
+              ref={(ref) => {
+                if (ref) markerRefs.current[p.camera_id] = ref;
+              }}
+              center={[p.latitude, p.longitude]}
+              radius={innerRadius}
+              pathOptions={{
+                color: isFocused ? "#93c5fd" : "#ffffff",
+                fillColor: color,
+                fillOpacity: isFocused ? 0.95 : 0.9,
+                weight: isFocused ? 3 : 2,
+                opacity: isFocused ? 1 : 0.6,
+                className: "congestion-marker",
+              }}
             >
-              View Details
-            </Link>
-          </Popup>
-        </CircleMarker>
-      ))}
+              <Popup>
+                <strong>{cameraNames[p.camera_id] ?? `Camera #${p.camera_id}`}</strong>
+                <br />
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: 4,
+                    marginBottom: 4,
+                    padding: "2px 8px",
+                    borderRadius: 9999,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#fff",
+                    background: info.color,
+                  }}
+                >
+                  {info.label}
+                </span>
+                <br />
+                Total: {p.total_count.toLocaleString()} vehicles
+                <br />
+                <Link
+                  to={`/cameras/${p.camera_id}`}
+                  className="text-primary underline"
+                >
+                  View Details
+                </Link>
+              </Popup>
+            </CircleMarker>
+          </span>
+        );
+      })}
     </MapContainer>
     </div>
   );
