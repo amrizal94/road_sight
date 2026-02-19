@@ -34,10 +34,14 @@ space_monitors: dict[int, dict] = {}
 _COL_FREE = (0, 200, 0)   # green
 _COL_OCC  = (0, 0, 220)   # red
 
-# Background subtraction — how different a slot needs to be to count as occupied
-# Higher = less sensitive (fewer false positives), Lower = more sensitive
-BG_DIFF_THRESHOLD = 35   # mean absolute pixel difference per channel
+# ── Background subtraction (requires empty reference frame) ──────────────────
+BG_DIFF_THRESHOLD = 35    # mean absolute pixel difference
 MIN_OCCUPIED_RATIO = 0.15  # at least 15% of slot pixels must differ
+
+# ── Texture analysis (Laplacian variance — no reference needed) ───────────────
+# Cars have high edge complexity; empty slots are uniform concrete/asphalt.
+# Tune this value: raise if too many false positives, lower if misses cars.
+TEXTURE_THRESHOLD = 150.0
 
 
 def _resolve_url(url: str) -> str:
@@ -55,13 +59,12 @@ def _build_polygon_mask(polygon: list[list[float]], shape: tuple[int, int]) -> n
     return mask
 
 
-def _check_occupied(frame_gray: np.ndarray,
-                    ref_gray: np.ndarray,
-                    mask: np.ndarray) -> bool:
+def _check_occupied_bg(frame_gray: np.ndarray,
+                       ref_gray: np.ndarray,
+                       mask: np.ndarray) -> bool:
     """
-    True if the masked region in frame differs significantly from ref.
-    Uses per-pixel absolute difference: occupied when mean diff > BG_DIFF_THRESHOLD
-    AND at least MIN_OCCUPIED_RATIO of pixels exceed a local threshold.
+    Background subtraction: compare current frame to empty-lot reference.
+    More accurate but requires a reference frame captured when lot is empty.
     """
     diff = cv2.absdiff(frame_gray, ref_gray)
     diff_masked = cv2.bitwise_and(diff, diff, mask=mask)
@@ -71,10 +74,29 @@ def _check_occupied(frame_gray: np.ndarray,
         return False
 
     mean_diff = float(np.sum(diff_masked)) / pixel_count
-    hot_pixels = int(np.sum((diff_masked > BG_DIFF_THRESHOLD // 2).astype(np.uint8) & (mask > 0)))
+    hot_pixels = int(np.sum(
+        (diff_masked > BG_DIFF_THRESHOLD // 2).astype(np.uint8) & (mask > 0)
+    ))
     hot_ratio = hot_pixels / pixel_count
-
     return mean_diff > BG_DIFF_THRESHOLD and hot_ratio > MIN_OCCUPIED_RATIO
+
+
+def _check_occupied_texture(frame_gray: np.ndarray, mask: np.ndarray) -> bool:
+    """
+    Texture / Laplacian variance method — no reference frame needed.
+    Cars have high edge complexity; empty asphalt/concrete is uniform.
+    Works well for overhead parking videos (YouTube, RTSP, etc.).
+    """
+    pixel_count = int(np.sum(mask > 0))
+    if pixel_count == 0:
+        return False
+
+    # Laplacian = second derivative → high value = lots of edges/texture
+    lap = cv2.Laplacian(frame_gray, cv2.CV_64F)
+    lap_sq = lap ** 2
+    # Only within the slot polygon
+    variance = float(np.sum(lap_sq[mask > 0])) / pixel_count
+    return variance > TEXTURE_THRESHOLD
 
 
 def _draw_spaces(frame: np.ndarray, spaces: list[dict]) -> None:
@@ -141,11 +163,6 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
 
     try:
         while monitor.get("status") == "running":
-            # Check if user requested a new reference
-            if monitor.get("_capture_reference"):
-                monitor["_capture_reference"] = False
-                reference_gray = None   # force re-capture next frame
-
             frame = reader.read(timeout=FRAME_QUEUE_TIMEOUT)
 
             if frame is None:
@@ -196,21 +213,29 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 for sp in space_states:
                     sp["_mask"] = _build_polygon_mask(sp["polygon"], frame.shape)
 
-            # Capture reference on first frame (or after user reset)
-            if reference_gray is None:
+            # Capture reference only when user explicitly requests it
+            if monitor.get("_capture_reference"):
+                monitor["_capture_reference"] = False
                 reference_gray = frame_gray.copy()
                 monitor["has_reference"] = True
                 monitor["reference_captured_at"] = datetime.now().isoformat()
                 logger.info(f"Space monitor lot {lot_id}: reference frame captured")
-                # Give one second for reference to settle
-                continue
+                continue  # skip detection on capture frame
+
+            monitor["detection_mode"] = "background" if reference_gray is not None else "texture"
 
             # --- Check each space ---
+            # Use background subtraction when reference is available (more accurate),
+            # otherwise fall back to texture analysis (works with any video).
+            use_bg = reference_gray is not None
             for sp in space_states:
                 mask = sp["_mask"]
                 if mask is None:
                     continue
-                sp["occupied"] = _check_occupied(frame_gray, reference_gray, mask)
+                if use_bg:
+                    sp["occupied"] = _check_occupied_bg(frame_gray, reference_gray, mask)
+                else:
+                    sp["occupied"] = _check_occupied_texture(frame_gray, mask)
 
             occ = sum(1 for sp in space_states if sp["occupied"])
             free = len(space_states) - occ
@@ -337,6 +362,7 @@ def get_space_monitor_status(lot_id: int) -> dict | None:
         "last_update": monitor.get("last_update"),
         "has_reference": monitor.get("has_reference", False),
         "reference_captured_at": monitor.get("reference_captured_at"),
+        "detection_mode": monitor.get("detection_mode", "texture"),
         "error": monitor.get("error"),
     }
 

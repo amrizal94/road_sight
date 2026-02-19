@@ -240,6 +240,7 @@ export interface SpaceMonitorStatus {
   last_update: string | null;
   has_reference: boolean;
   reference_captured_at: string | null;
+  detection_mode: string;  // "texture" | "background"
   error: string | null;
 }
 

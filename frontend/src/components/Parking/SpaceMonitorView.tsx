@@ -106,7 +106,10 @@ export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }
         <div>
           <h4 className="text-sm font-semibold text-slate-300">Space Detection Monitor</h4>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            Metode: background subtraction — pastikan referensi diambil saat slot kosong
+            Mode:{" "}
+            {status?.detection_mode === "background"
+              ? "Background Subtraction (akurat, butuh referensi kosong)"
+              : "Texture Analysis (langsung jalan, tanpa referensi)"}
           </p>
         </div>
         {status && status.status !== "idle" && (
@@ -169,7 +172,7 @@ export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }
         </div>
       )}
 
-      {isRunning && status?.has_reference && (
+      {isRunning && (
         <div className="space-y-3">
           {/* MJPEG feed */}
           <div className="bg-black rounded-lg overflow-hidden border border-slate-800">

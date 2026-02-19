@@ -121,4 +121,5 @@ class SpaceMonitorStatus(BaseModel):
     last_update: str | None
     has_reference: bool = False
     reference_captured_at: str | None = None
+    detection_mode: str = "texture"   # "texture" | "background"
     error: str | None = None
