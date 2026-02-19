@@ -142,6 +142,7 @@ export interface ParkingLot {
   initial_occupied: number;
   status: string;
   stream_url: string | null;
+  overhead_stream_url: string | null;
   created_at: string | null;
 }
 
@@ -154,6 +155,7 @@ export interface ParkingLotCreate {
   initial_occupied?: number;
   status?: string;
   stream_url?: string | null;
+  overhead_stream_url?: string | null;
 }
 
 export interface OccupancyStatus {
@@ -169,6 +171,7 @@ export interface OccupancyStatus {
   status_label: string;
   status_color: string;
   stream_url: string | null;
+  overhead_stream_url: string | null;
   is_live: boolean;
   line_in: number;
   line_out: number;
@@ -211,3 +214,43 @@ export const stopParkingMonitor = (id: number) =>
   api.post(`/parking/monitor/stop/${id}`);
 export const getParkingMonitorStatus = (id: number) =>
   api.get<ParkingMonitorStatus>(`/parking/monitor/status/${id}`);
+
+// Space Detection
+export interface ParkingSpace {
+  id: number;
+  parking_lot_id: number;
+  label: string;
+  polygon: number[][];  // [[x, y], ...]
+}
+
+export interface SpaceStatus {
+  space_id: number;
+  label: string;
+  occupied: boolean;
+  polygon: number[][];
+}
+
+export interface SpaceMonitorStatus {
+  lot_id: number;
+  status: string;  // idle | starting | running | stopping | stopped | error
+  occupied_count: number;
+  free_count: number;
+  total_count: number;
+  spaces: SpaceStatus[];
+  last_update: string | null;
+  error: string | null;
+}
+
+export const getParkingSpaces = (lotId: number) =>
+  api.get<ParkingSpace[]>(`/parking/spaces/${lotId}`);
+export const createParkingSpace = (lotId: number, data: { label: string; polygon: number[][] }) =>
+  api.post<ParkingSpace>(`/parking/spaces/${lotId}`, data);
+export const deleteParkingSpace = (lotId: number, spaceId: number) =>
+  api.delete(`/parking/spaces/${lotId}/${spaceId}`);
+
+export const startSpaceMonitor = (lotId: number, modelName?: string) =>
+  api.post(`/parking/space-monitor/start/${lotId}`, { model_name: modelName ?? null });
+export const stopSpaceMonitor = (lotId: number) =>
+  api.post(`/parking/space-monitor/stop/${lotId}`);
+export const getSpaceMonitorStatus = (lotId: number) =>
+  api.get<SpaceMonitorStatus>(`/parking/space-monitor/status/${lotId}`);

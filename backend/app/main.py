@@ -5,12 +5,14 @@ import os
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .config import settings
 from .database import Base, engine
 from .routers import analytics, cameras, detections, parking, stream, system
 from .services.live_monitor import active_monitors, stop_all_monitors
 from .services.parking_monitor import stop_all_parking_monitors
+from .services.space_monitor import stop_all_space_monitors
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,12 @@ app = FastAPI(title="Road Sight API", version="0.1.0")
 def on_startup():
     try:
         Base.metadata.create_all(bind=engine)
+        # Idempotent column migrations
+        with engine.connect() as conn:
+            conn.execute(text(
+                "ALTER TABLE parking_lots ADD COLUMN IF NOT EXISTS overhead_stream_url VARCHAR"
+            ))
+            conn.commit()
         logger.info(f"Database OK. Timezone: {settings.timezone}")
     except Exception as e:
         logger.warning(f"Database not ready: {e}. Start PostgreSQL and restart.")
@@ -33,6 +41,7 @@ def on_shutdown():
     logger.info("Shutting down — stopping all live monitors...")
     stop_all_monitors()
     stop_all_parking_monitors()
+    stop_all_space_monitors()
 
 
 app.add_middleware(

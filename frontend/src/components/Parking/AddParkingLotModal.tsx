@@ -22,6 +22,7 @@ const EMPTY_FORM: ParkingLotCreate = {
   initial_occupied: 0,
   status: "active",
   stream_url: "",
+  overhead_stream_url: "",
 };
 
 export default function AddParkingLotModal({ open, onClose, onSaved, editLot }: Props) {
@@ -40,6 +41,7 @@ export default function AddParkingLotModal({ open, onClose, onSaved, editLot }: 
         initial_occupied: editLot.initial_occupied,
         status: editLot.status,
         stream_url: editLot.stream_url ?? "",
+        overhead_stream_url: editLot.overhead_stream_url ?? "",
       });
     } else {
       setForm(EMPTY_FORM);
@@ -61,6 +63,7 @@ export default function AddParkingLotModal({ open, onClose, onSaved, editLot }: 
       const payload = {
         ...form,
         stream_url: form.stream_url?.trim() || null,
+        overhead_stream_url: form.overhead_stream_url?.trim() || null,
       };
       if (editLot) {
         await updateParkingLot(editLot.id, payload);
@@ -153,7 +156,7 @@ export default function AddParkingLotModal({ open, onClose, onSaved, editLot }: 
           </div>
 
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Stream URL (opsional)</label>
+            <label className="block text-xs text-slate-400 mb-1">Stream URL Gate Monitor (opsional)</label>
             <input
               value={form.stream_url ?? ""}
               onChange={(e) => set("stream_url", e.target.value)}
@@ -161,8 +164,20 @@ export default function AddParkingLotModal({ open, onClose, onSaved, editLot }: 
               className="w-full bg-card-dark border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-primary focus:outline-none placeholder-slate-500"
             />
             <p className="text-[10px] text-slate-500 mt-1">
-              URL YouTube / RTSP kamera parkir — dipakai khusus untuk hitung masuk/keluar.
-              Terpisah dari kamera traffic monitoring.
+              Kamera pintu masuk/keluar — hitung kendaraan yang lewat (line crossing).
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Overhead Stream URL Space Detection (opsional)</label>
+            <input
+              value={form.overhead_stream_url ?? ""}
+              onChange={(e) => set("overhead_stream_url", e.target.value)}
+              placeholder="https://youtube.com/watch?v=... atau rtsp://..."
+              className="w-full bg-card-dark border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-primary focus:outline-none placeholder-slate-500"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Kamera overhead (atas) — deteksi slot parkir mana yang terisi berdasarkan polygon.
             </p>
           </div>
 

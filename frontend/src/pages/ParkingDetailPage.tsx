@@ -11,15 +11,21 @@ import {
 } from "recharts";
 import AddParkingLotModal from "../components/Parking/AddParkingLotModal";
 import ParkingMonitor from "../components/Parking/ParkingMonitor";
+import SpaceEditor from "../components/Parking/SpaceEditor";
+import SpaceMonitorView from "../components/Parking/SpaceMonitorView";
 import {
   OccupancyStatus,
   OccupancyTrend,
   ParkingLot,
+  ParkingSpace,
   deleteParkingLot,
   getParkingLot,
   getParkingLotStatus,
+  getParkingSpaces,
   getParkingTrends,
 } from "../services/api";
+
+type MonitorTab = "gate" | "space-editor" | "space-monitor";
 
 export default function ParkingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,8 +34,10 @@ export default function ParkingDetailPage() {
   const [lot, setLot] = useState<ParkingLot | null>(null);
   const [status, setStatus] = useState<OccupancyStatus | null>(null);
   const [trends, setTrends] = useState<OccupancyTrend[]>([]);
+  const [spaces, setSpaces] = useState<ParkingSpace[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [tab, setTab] = useState<MonitorTab>("gate");
 
   const fetchAll = useCallback(async () => {
     try {
@@ -46,11 +54,26 @@ export default function ParkingDetailPage() {
     }
   }, [lotId]);
 
+  const fetchSpaces = useCallback(async () => {
+    try {
+      const res = await getParkingSpaces(lotId);
+      setSpaces(res.data);
+    } catch { /**/ }
+  }, [lotId]);
+
   useEffect(() => {
     fetchAll();
+    fetchSpaces();
     const iv = window.setInterval(fetchAll, 10_000);
     return () => window.clearInterval(iv);
-  }, [fetchAll]);
+  }, [fetchAll, fetchSpaces]);
+
+  // Refresh spaces when switching to space tabs
+  useEffect(() => {
+    if (tab === "space-editor" || tab === "space-monitor") {
+      fetchSpaces();
+    }
+  }, [tab, fetchSpaces]);
 
   const handleDelete = async () => {
     if (!window.confirm("Hapus lot parkir ini?")) return;
@@ -69,6 +92,12 @@ export default function ParkingDetailPage() {
     time: new Date(t.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
     occupied: t.occupied_spaces,
   }));
+
+  const tabs: { key: MonitorTab; label: string; icon: string }[] = [
+    { key: "gate", label: "Gate Monitor", icon: "sensors" },
+    { key: "space-editor", label: "Space Editor", icon: "edit_square" },
+    { key: "space-monitor", label: "Space Detection", icon: "grid_view" },
+  ];
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -137,8 +166,8 @@ export default function ParkingDetailPage() {
         </div>
       </div>
 
-      {/* Live stats when monitor running */}
-      {status.is_live && (
+      {/* Live stats when gate monitor running */}
+      {status.is_live && (status.line_in > 0 || status.line_out > 0) && (
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card-dark border border-slate-800 rounded-lg p-3 flex items-center gap-3">
             <span className="material-symbols-outlined text-emerald-400">login</span>
@@ -157,16 +186,50 @@ export default function ParkingDetailPage() {
         </div>
       )}
 
-      {/* Parking Monitor — independent, no conflict with traffic */}
-      <div>
-        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-          Monitor Kamera Parkir
-        </h3>
-        <ParkingMonitor
-          lotId={lotId}
-          streamUrl={lot.stream_url}
-          totalSpaces={lot.total_spaces}
-        />
+      {/* Monitor section with tabs */}
+      <div className="bg-card-dark border border-slate-800 rounded-lg overflow-hidden">
+        {/* Tab bar */}
+        <div className="flex border-b border-slate-800">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                tab === t.key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="p-4">
+          {tab === "gate" && (
+            <ParkingMonitor
+              lotId={lotId}
+              streamUrl={lot.stream_url}
+              totalSpaces={lot.total_spaces}
+            />
+          )}
+          {tab === "space-editor" && (
+            <SpaceEditor
+              lotId={lotId}
+              overheadStreamUrl={lot.overhead_stream_url}
+            />
+          )}
+          {tab === "space-monitor" && (
+            <SpaceMonitorView
+              lotId={lotId}
+              totalSpaces={lot.total_spaces}
+              hasSpaces={spaces.length > 0}
+              overheadStreamUrl={lot.overhead_stream_url}
+            />
+          )}
+        </div>
       </div>
 
       {/* Occupancy trend chart */}
