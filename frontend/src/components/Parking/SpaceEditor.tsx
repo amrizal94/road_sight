@@ -11,9 +11,48 @@ interface Props {
   overheadStreamUrl: string | null;
 }
 
+/**
+ * Compute the actual rendered image bounds within an <img> element that uses object-fit: contain.
+ * Returns { rw, rh, ox, oy } — rendered width/height and x/y offset (letterbox).
+ */
+function getImageBounds(img: HTMLImageElement) {
+  const cw = img.clientWidth;
+  const ch = img.clientHeight;
+  const nw = img.naturalWidth || cw;
+  const nh = img.naturalHeight || ch;
+
+  const containerAspect = cw / ch;
+  const imageAspect = nw / nh;
+
+  let rw: number, rh: number, ox: number, oy: number;
+  if (imageAspect > containerAspect) {
+    // Image is wider → black bars top & bottom
+    rw = cw;
+    rh = cw / imageAspect;
+    ox = 0;
+    oy = (ch - rh) / 2;
+  } else {
+    // Image is taller → black bars left & right
+    rh = ch;
+    rw = ch * imageAspect;
+    ox = (cw - rw) / 2;
+    oy = 0;
+  }
+  return { rw, rh, ox, oy };
+}
+
+/** Convert natural-image pixel coords → canvas display coords */
+function natToDisplay(x: number, y: number, img: HTMLImageElement) {
+  const { rw, rh, ox, oy } = getImageBounds(img);
+  return {
+    dx: (x / img.naturalWidth) * rw + ox,
+    dy: (y / img.naturalHeight) * rh + oy,
+  };
+}
+
 export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
   const [spaces, setSpaces] = useState<ParkingSpace[]>([]);
-  const [drawing, setDrawing] = useState<number[][]>([]);  // current polygon in progress
+  const [drawing, setDrawing] = useState<number[][]>([]);
   const [label, setLabel] = useState("");
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -37,14 +76,12 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
     setLoadingFrame(true);
     setError("");
     setImgLoaded(false);
-    // Add cache-buster
     setImgSrc(`/api/parking/space-monitor/frame/${lotId}?t=${Date.now()}`);
   };
 
   const handleImgLoad = () => {
     setImgLoaded(true);
     setLoadingFrame(false);
-    redraw();
   };
 
   const handleImgError = () => {
@@ -58,24 +95,24 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
     const img = imgRef.current;
     if (!canvas || !img || !imgLoaded) return;
 
+    // Canvas size = full image element size (including black bars)
     canvas.width = img.clientWidth;
     canvas.height = img.clientHeight;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
-    const scaleX = img.clientWidth / (img.naturalWidth || img.clientWidth);
-    const scaleY = img.clientHeight / (img.naturalHeight || img.clientHeight);
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw saved spaces
     for (const sp of spaces) {
       if (sp.polygon.length < 2) continue;
+
       ctx.beginPath();
-      ctx.moveTo(sp.polygon[0][0] * scaleX, sp.polygon[0][1] * scaleY);
+      const p0 = natToDisplay(sp.polygon[0][0], sp.polygon[0][1], img);
+      ctx.moveTo(p0.dx, p0.dy);
       for (let i = 1; i < sp.polygon.length; i++) {
-        ctx.lineTo(sp.polygon[i][0] * scaleX, sp.polygon[i][1] * scaleY);
+        const p = natToDisplay(sp.polygon[i][0], sp.polygon[i][1], img);
+        ctx.lineTo(p.dx, p.dy);
       }
       ctx.closePath();
       ctx.fillStyle = "rgba(34, 197, 94, 0.25)";
@@ -84,24 +121,27 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Label
-      const cx = sp.polygon.reduce((s, p) => s + p[0], 0) / sp.polygon.length * scaleX;
-      const cy = sp.polygon.reduce((s, p) => s + p[1], 0) / sp.polygon.length * scaleY;
+      // Centroid label
+      const cx = sp.polygon.reduce((s, p) => s + p[0], 0) / sp.polygon.length;
+      const cy = sp.polygon.reduce((s, p) => s + p[1], 0) / sp.polygon.length;
+      const { dx: lcx, dy: lcy } = natToDisplay(cx, cy, img);
       ctx.font = "bold 13px sans-serif";
-      ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
       ctx.strokeStyle = "#000";
       ctx.lineWidth = 3;
-      ctx.strokeText(sp.label, cx, cy);
-      ctx.fillText(sp.label, cx, cy);
+      ctx.strokeText(sp.label, lcx, lcy);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(sp.label, lcx, lcy);
     }
 
     // Draw in-progress polygon
     if (drawing.length > 0) {
       ctx.beginPath();
-      ctx.moveTo(drawing[0][0] * scaleX, drawing[0][1] * scaleY);
+      const d0 = natToDisplay(drawing[0][0], drawing[0][1], img);
+      ctx.moveTo(d0.dx, d0.dy);
       for (let i = 1; i < drawing.length; i++) {
-        ctx.lineTo(drawing[i][0] * scaleX, drawing[i][1] * scaleY);
+        const d = natToDisplay(drawing[i][0], drawing[i][1], img);
+        ctx.lineTo(d.dx, d.dy);
       }
       ctx.strokeStyle = "#f59e0b";
       ctx.lineWidth = 2;
@@ -109,10 +149,10 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Vertex dots
       for (const pt of drawing) {
+        const { dx, dy } = natToDisplay(pt[0], pt[1], img);
         ctx.beginPath();
-        ctx.arc(pt[0] * scaleX, pt[1] * scaleY, 4, 0, Math.PI * 2);
+        ctx.arc(dx, dy, 4, 0, Math.PI * 2);
         ctx.fillStyle = "#f59e0b";
         ctx.fill();
       }
@@ -130,40 +170,23 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
     const displayX = e.clientX - rect.left;
     const displayY = e.clientY - rect.top;
 
-    // Convert to natural image coordinates
-    const scaleX = (img.naturalWidth || img.clientWidth) / img.clientWidth;
-    const scaleY = (img.naturalHeight || img.clientHeight) / img.clientHeight;
-    const natX = displayX * scaleX;
-    const natY = displayY * scaleY;
+    // Account for letterbox offset, then scale to natural image coordinates
+    const { rw, rh, ox, oy } = getImageBounds(img);
+    const natX = ((displayX - ox) / rw) * img.naturalWidth;
+    const natY = ((displayY - oy) / rh) * img.naturalHeight;
+
+    // Ignore clicks on the black bar area
+    if (natX < 0 || natY < 0 || natX > img.naturalWidth || natY > img.naturalHeight) return;
 
     setDrawing((prev) => [...prev, [natX, natY]]);
   };
 
-  const handleDoubleClick = () => {
-    // Double-click closes the polygon (remove the last point that was added by the click event first)
-    if (drawing.length >= 3) {
-      // polygon complete — don't auto-save, let user name it and click "Simpan"
-    }
-  };
-
-  const cancelDrawing = () => {
-    setDrawing([]);
-    setLabel("");
-  };
-
-  const undoPoint = () => {
-    setDrawing((prev) => prev.slice(0, -1));
-  };
+  const cancelDrawing = () => { setDrawing([]); setLabel(""); };
+  const undoPoint = () => setDrawing((prev) => prev.slice(0, -1));
 
   const saveSpace = async () => {
-    if (drawing.length < 3) {
-      setError("Minimal 3 titik untuk membentuk polygon");
-      return;
-    }
-    if (!label.trim()) {
-      setError("Label slot wajib diisi (contoh: A1)");
-      return;
-    }
+    if (drawing.length < 3) { setError("Minimal 3 titik untuk membentuk polygon"); return; }
+    if (!label.trim()) { setError("Label slot wajib diisi (contoh: A1)"); return; }
     setSaving(true);
     setError("");
     try {
@@ -194,7 +217,6 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
         <button
           onClick={loadFrame}
@@ -210,7 +232,6 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      {/* Image + canvas overlay */}
       {imgSrc && (
         <div className="space-y-2">
           <p className="text-xs text-slate-400">
@@ -230,14 +251,12 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
-                onDoubleClick={handleDoubleClick}
                 className="absolute inset-0 cursor-crosshair"
                 style={{ width: imgRef.current?.clientWidth, height: imgRef.current?.clientHeight }}
               />
             )}
           </div>
 
-          {/* Drawing controls */}
           {drawing.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center p-3 bg-slate-900/60 rounded border border-amber-500/30">
               <span className="text-amber-400 text-xs font-medium">{drawing.length} titik</span>
@@ -271,7 +290,6 @@ export default function SpaceEditor({ lotId, overheadStreamUrl }: Props) {
         </div>
       )}
 
-      {/* Saved spaces list */}
       {spaces.length > 0 && (
         <div>
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Slot Terdaftar</h4>
