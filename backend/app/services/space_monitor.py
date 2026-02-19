@@ -161,10 +161,14 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 poly = sp["polygon"]
                 occupied = False
                 for (x1, y1, x2, y2) in boxes:
-                    # Use bottom-center of bounding box as anchor point
-                    bx = (x1 + x2) / 2.0
-                    by = y2
-                    if _point_in_polygon((bx, by), poly):
+                    # Overhead view: check center + all 4 corners of bbox
+                    # (bottom-center is wrong for top-down cameras)
+                    anchors = [
+                        ((x1 + x2) / 2.0, (y1 + y2) / 2.0),  # center
+                        (x1, y1), (x2, y1),                    # top corners
+                        (x1, y2), (x2, y2),                    # bottom corners
+                    ]
+                    if any(_point_in_polygon(pt, poly) for pt in anchors):
                         occupied = True
                         break
                 sp["occupied"] = occupied
