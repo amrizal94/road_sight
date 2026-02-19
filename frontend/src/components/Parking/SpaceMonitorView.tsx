@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   SpaceMonitorStatus,
-  YoloModel,
-  getModels,
   getSpaceMonitorStatus,
+  recaptureSpaceReference,
   startSpaceMonitor,
   stopSpaceMonitor,
 } from "../../services/api";
@@ -11,33 +10,23 @@ import {
 interface Props {
   lotId: number;
   totalSpaces: number;
-  hasSpaces: boolean;   // whether any polygon spaces are defined
+  hasSpaces: boolean;
   overheadStreamUrl: string | null;
 }
 
-export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overheadStreamUrl }: Props) {
+export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }: Props) {
   const [status, setStatus] = useState<SpaceMonitorStatus | null>(null);
-  const [models, setModels] = useState<YoloModel[]>([]);
-  const [selectedModel, setSelectedModel] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recapturing, setRecapturing] = useState(false);
   const [error, setError] = useState("");
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   const isRunning = status?.status === "running" || status?.status === "starting";
 
   useEffect(() => {
-    getModels().then((r) => {
-      setModels(r.data);
-      if (r.data.length > 0) setSelectedModel(r.data[0].id);
-    }).catch(() => {});
-  }, []);
-
-  // Cleanup MJPEG on unmount
-  useEffect(() => {
     return () => { if (imgRef.current) imgRef.current.src = ""; };
   }, []);
 
-  // Poll status
   useEffect(() => {
     let active = true;
     const check = async () => {
@@ -58,7 +47,7 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
     setLoading(true);
     setError("");
     try {
-      await startSpaceMonitor(lotId, selectedModel || undefined);
+      await startSpaceMonitor(lotId);
       const res = await getSpaceMonitorStatus(lotId);
       setStatus(res.data);
     } catch (e: any) {
@@ -78,6 +67,16 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
     setLoading(false);
   };
 
+  const handleRecapture = async () => {
+    setRecapturing(true);
+    try {
+      await recaptureSpaceReference(lotId);
+    } catch (e: any) {
+      setError(e.response?.data?.detail || e.message);
+    }
+    setRecapturing(false);
+  };
+
   if (!overheadStreamUrl) {
     return (
       <p className="text-sm text-slate-500">
@@ -89,7 +88,7 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
   if (!hasSpaces) {
     return (
       <p className="text-sm text-slate-500">
-        Belum ada slot parkir yang di-mapping. Gambar polygon slot terlebih dahulu di tab{" "}
+        Belum ada slot yang di-mapping. Gambar polygon dulu di tab{" "}
         <strong className="text-slate-300">Space Editor</strong>.
       </p>
     );
@@ -102,9 +101,14 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
 
   return (
     <div className="space-y-4">
-      {/* Status badge + controls */}
+      {/* Header + status badge */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-slate-300">Space Detection Monitor</h4>
+        <div>
+          <h4 className="text-sm font-semibold text-slate-300">Space Detection Monitor</h4>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Metode: background subtraction — pastikan referensi diambil saat slot kosong
+          </p>
+        </div>
         {status && status.status !== "idle" && (
           <span className={`px-2 py-1 rounded text-xs font-medium ${
             status.status === "running" ? "bg-emerald-500/20 text-emerald-400"
@@ -116,38 +120,56 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
         )}
       </div>
 
+      {/* Start / Stop */}
       {!isRunning ? (
-        <div className="space-y-2">
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="bg-card-dark border border-slate-700 text-white rounded px-3 py-2 w-full text-sm focus:border-primary focus:outline-none"
-          >
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
-            ))}
-          </select>
+        <button
+          onClick={handleStart}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50 transition-colors"
+        >
+          {loading ? "Memulai..." : "Start Space Detection"}
+        </button>
+      ) : (
+        <div className="flex gap-2">
           <button
-            onClick={handleStart}
+            onClick={handleStop}
             disabled={loading}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50 transition-colors"
+            className="flex-1 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm disabled:opacity-50 transition-colors"
           >
-            {loading ? "Memulai..." : "Start Space Detection"}
+            {loading ? "Menghentikan..." : "Stop"}
+          </button>
+          <button
+            onClick={handleRecapture}
+            disabled={recapturing}
+            className="flex-1 bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm disabled:opacity-50 transition-colors"
+            title="Ambil ulang frame referensi (gunakan saat slot sedang kosong)"
+          >
+            {recapturing ? "Mengambil..." : "Set Referensi Baru"}
           </button>
         </div>
-      ) : (
-        <button
-          onClick={handleStop}
-          disabled={loading}
-          className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm disabled:opacity-50 transition-colors"
-        >
-          {loading ? "Menghentikan..." : "Stop Space Detection"}
-        </button>
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
+      {/* Reference status */}
       {isRunning && (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded text-xs border ${
+          status?.has_reference
+            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+            : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+        }`}>
+          <span className="material-symbols-outlined text-sm">
+            {status?.has_reference ? "check_circle" : "hourglass_empty"}
+          </span>
+          {status?.has_reference
+            ? `Referensi OK — diambil ${status.reference_captured_at
+                ? new Date(status.reference_captured_at).toLocaleTimeString("id-ID")
+                : ""}`
+            : "Mengambil frame referensi..."}
+        </div>
+      )}
+
+      {isRunning && status?.has_reference && (
         <div className="space-y-3">
           {/* MJPEG feed */}
           <div className="bg-black rounded-lg overflow-hidden border border-slate-800">
@@ -192,7 +214,7 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
             </div>
           </div>
 
-          {/* Per-space status grid */}
+          {/* Per-slot status */}
           {status?.spaces && status.spaces.length > 0 && (
             <div>
               <h5 className="text-xs text-slate-500 uppercase tracking-wider mb-2">Status Per Slot</h5>
@@ -218,10 +240,7 @@ export default function SpaceMonitorView({ lotId, totalSpaces, hasSpaces, overhe
               Update: {new Date(status.last_update).toLocaleTimeString("id-ID")}
             </p>
           )}
-
-          {status?.error && (
-            <p className="text-red-400 text-xs">Error: {status.error}</p>
-          )}
+          {status?.error && <p className="text-red-400 text-xs">Error: {status.error}</p>}
         </div>
       )}
     </div>

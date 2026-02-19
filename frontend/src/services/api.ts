@@ -238,6 +238,8 @@ export interface SpaceMonitorStatus {
   total_count: number;
   spaces: SpaceStatus[];
   last_update: string | null;
+  has_reference: boolean;
+  reference_captured_at: string | null;
   error: string | null;
 }
 
@@ -248,9 +250,11 @@ export const createParkingSpace = (lotId: number, data: { label: string; polygon
 export const deleteParkingSpace = (lotId: number, spaceId: number) =>
   api.delete(`/parking/spaces/${lotId}/${spaceId}`);
 
-export const startSpaceMonitor = (lotId: number, modelName?: string) =>
-  api.post(`/parking/space-monitor/start/${lotId}`, { model_name: modelName ?? null });
+export const startSpaceMonitor = (lotId: number) =>
+  api.post(`/parking/space-monitor/start/${lotId}`);
 export const stopSpaceMonitor = (lotId: number) =>
   api.post(`/parking/space-monitor/stop/${lotId}`);
+export const recaptureSpaceReference = (lotId: number) =>
+  api.post(`/parking/space-monitor/recapture/${lotId}`);
 export const getSpaceMonitorStatus = (lotId: number) =>
   api.get<SpaceMonitorStatus>(`/parking/space-monitor/status/${lotId}`);

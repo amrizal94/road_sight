@@ -1,7 +1,10 @@
 """
-Independent space detection monitor — uses overhead camera to detect occupied/free slots.
-Keys: lot_id (int).  Does NOT conflict with gate monitor or traffic monitor.
-Polygons are stored in natural-image pixel coordinates (matched to frame resolution).
+Parking space detection monitor using background subtraction.
+Each parking space is a polygon drawn on an overhead frame.
+A space is "occupied" when its pixel difference from the reference
+(empty-lot) frame exceeds a threshold.
+
+Keys: lot_id (int) — independent from gate monitor and traffic monitor.
 """
 import logging
 import threading
@@ -12,7 +15,6 @@ import cv2
 import numpy as np
 
 from ..config import settings
-from .detector import VehicleDetector
 from .live_monitor import (
     FRAME_QUEUE_TIMEOUT,
     MAX_RECONNECT_ATTEMPTS,
@@ -26,28 +28,57 @@ from .live_monitor import (
 
 logger = logging.getLogger(__name__)
 
-# Independent dict — keyed by lot_id, no overlap with parking_monitors or active_monitors
 space_monitors: dict[int, dict] = {}
 
 # Overlay colours (BGR)
 _COL_FREE = (0, 200, 0)   # green
 _COL_OCC  = (0, 0, 220)   # red
 
+# Background subtraction — how different a slot needs to be to count as occupied
+# Higher = less sensitive (fewer false positives), Lower = more sensitive
+BG_DIFF_THRESHOLD = 35   # mean absolute pixel difference per channel
+MIN_OCCUPIED_RATIO = 0.15  # at least 15% of slot pixels must differ
+
 
 def _resolve_url(url: str) -> str:
-    """Use yt-dlp only for YouTube URLs; return other URLs (RTSP, HTTP) as-is."""
+    """Use yt-dlp for YouTube URLs; return RTSP/HTTP URLs as-is."""
     if "youtube" in url or "youtu.be" in url:
         return _get_stream_url(url)
     return url
 
 
-def _point_in_polygon(point: tuple[float, float], polygon: list[list[float]]) -> bool:
+def _build_polygon_mask(polygon: list[list[float]], shape: tuple[int, int]) -> np.ndarray:
+    """Binary mask (uint8) for the given polygon on a frame of given (h, w)."""
+    mask = np.zeros(shape[:2], dtype=np.uint8)
     pts = np.array(polygon, dtype=np.int32)
-    return cv2.pointPolygonTest(pts, point, False) >= 0
+    cv2.fillPoly(mask, [pts], 255)
+    return mask
+
+
+def _check_occupied(frame_gray: np.ndarray,
+                    ref_gray: np.ndarray,
+                    mask: np.ndarray) -> bool:
+    """
+    True if the masked region in frame differs significantly from ref.
+    Uses per-pixel absolute difference: occupied when mean diff > BG_DIFF_THRESHOLD
+    AND at least MIN_OCCUPIED_RATIO of pixels exceed a local threshold.
+    """
+    diff = cv2.absdiff(frame_gray, ref_gray)
+    diff_masked = cv2.bitwise_and(diff, diff, mask=mask)
+
+    pixel_count = int(np.sum(mask > 0))
+    if pixel_count == 0:
+        return False
+
+    mean_diff = float(np.sum(diff_masked)) / pixel_count
+    hot_pixels = int(np.sum((diff_masked > BG_DIFF_THRESHOLD // 2).astype(np.uint8) & (mask > 0)))
+    hot_ratio = hot_pixels / pixel_count
+
+    return mean_diff > BG_DIFF_THRESHOLD and hot_ratio > MIN_OCCUPIED_RATIO
 
 
 def _draw_spaces(frame: np.ndarray, spaces: list[dict]) -> None:
-    """Draw semi-transparent polygon overlays and labels on frame (in-place)."""
+    """Semi-transparent polygon overlays + labels (in-place)."""
     overlay = frame.copy()
     for sp in spaces:
         pts = np.array(sp["polygon"], dtype=np.int32)
@@ -59,17 +90,19 @@ def _draw_spaces(frame: np.ndarray, spaces: list[dict]) -> None:
         pts = np.array(sp["polygon"], dtype=np.int32)
         color = _COL_OCC if sp["occupied"] else _COL_FREE
         cv2.polylines(frame, [pts], True, color, 2)
+
         cx = int(np.mean(pts[:, 0]))
         cy = int(np.mean(pts[:, 1]))
         label = sp["label"]
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 2)
-        cv2.rectangle(frame, (cx - tw // 2 - 3, cy - th - 5), (cx + tw // 2 + 3, cy + 3), (0, 0, 0), -1)
+        cv2.rectangle(frame, (cx - tw // 2 - 3, cy - th - 5),
+                      (cx + tw // 2 + 3, cy + 3), (0, 0, 0), -1)
         cv2.putText(frame, label, (cx - tw // 2, cy),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
 
 
 def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
-                        overhead_url: str, stream_url: str, model_name: str | None):
+                        overhead_url: str, stream_url: str):
     monitor = space_monitors.get(lot_id)
     if not monitor:
         return
@@ -81,39 +114,43 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
         logger.error(f"Space monitor lot {lot_id}: Cannot open stream")
         return
 
-    detector = VehicleDetector(model_name)
-
-    # Guard: stop may have been requested while model was loading
     if monitor.get("status") == "stopping":
         cap.release()
         return
-    monitor["status"] = "running"
-    logger.info(f"Space monitor lot {lot_id}: started — {len(spaces_data)} spaces, model={model_name or settings.yolo_model}")
 
-    # Build mutable space state list
-    space_states = [
-        {
+    monitor["status"] = "running"
+    logger.info(f"Space monitor lot {lot_id}: started — {len(spaces_data)} spaces (background subtraction)")
+
+    # Build mutable space state with polygon masks
+    space_states: list[dict] = []
+    for sp in spaces_data:
+        space_states.append({
             "space_id": sp["space_id"],
             "label": sp["label"],
             "polygon": sp["polygon"],
             "occupied": False,
-        }
-        for sp in spaces_data
-    ]
+            "_mask": None,   # built on first frame
+        })
     monitor["spaces"] = _export_spaces(space_states)
 
     reader = FrameReader(cap)
     last_frame_time = time.time()
     reconnect_attempts = 0
+    reference_gray: np.ndarray | None = None
+    frame_count = 0
 
     try:
         while monitor.get("status") == "running":
+            # Check if user requested a new reference
+            if monitor.get("_capture_reference"):
+                monitor["_capture_reference"] = False
+                reference_gray = None   # force re-capture next frame
+
             frame = reader.read(timeout=FRAME_QUEUE_TIMEOUT)
 
             if frame is None:
                 if time.time() - last_frame_time < STREAM_DEAD_TIMEOUT:
                     continue
-
                 reader.stop()
                 reconnect_attempts += 1
                 if reconnect_attempts > MAX_RECONNECT_ATTEMPTS:
@@ -122,9 +159,8 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                     break
 
                 delay = min(RECONNECT_DELAY_BASE * (2 ** (reconnect_attempts - 1)), RECONNECT_DELAY_MAX)
-                logger.warning(f"Space monitor lot {lot_id}: Reconnecting ({reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS}), waiting {delay}s...")
+                logger.warning(f"Space monitor lot {lot_id}: Reconnect {reconnect_attempts}/{MAX_RECONNECT_ATTEMPTS}, wait {delay}s")
                 time.sleep(delay)
-
                 if monitor.get("status") != "running":
                     break
 
@@ -133,45 +169,48 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 except Exception as e:
                     logger.error(f"Space monitor lot {lot_id}: URL resolve failed: {e}")
                     continue
-
                 cap = _open_capture(stream_url)
                 if not cap.isOpened():
                     continue
                 reader = FrameReader(cap)
                 last_frame_time = time.time()
+                reference_gray = None   # re-capture after reconnect
                 continue
 
             last_frame_time = time.time()
             reconnect_attempts = 0
+            frame_count += 1
 
-            # --- Detect vehicles ---
-            orig_w = frame.shape[1]
-            scale = 640 / orig_w
-            small = cv2.resize(frame, None, fx=scale, fy=scale)
-            raw_dets = detector.detect(small)
+            # Resize to standard width for consistent processing
+            h, w = frame.shape[:2]
+            if w > 1280:
+                scale = 1280 / w
+                frame = cv2.resize(frame, None, fx=scale, fy=scale)
+                h, w = frame.shape[:2]
 
-            # Scale detections back to original frame size
-            boxes = []
-            for d in raw_dets:
-                x1, y1, x2, y2 = [v / scale for v in d["bbox"]]
-                boxes.append((x1, y1, x2, y2))
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame_gray = cv2.GaussianBlur(frame_gray, (5, 5), 0)
+
+            # Build polygon masks on first usable frame
+            if space_states[0]["_mask"] is None:
+                for sp in space_states:
+                    sp["_mask"] = _build_polygon_mask(sp["polygon"], frame.shape)
+
+            # Capture reference on first frame (or after user reset)
+            if reference_gray is None:
+                reference_gray = frame_gray.copy()
+                monitor["has_reference"] = True
+                monitor["reference_captured_at"] = datetime.now().isoformat()
+                logger.info(f"Space monitor lot {lot_id}: reference frame captured")
+                # Give one second for reference to settle
+                continue
 
             # --- Check each space ---
             for sp in space_states:
-                poly = sp["polygon"]
-                occupied = False
-                for (x1, y1, x2, y2) in boxes:
-                    # Overhead view: check center + all 4 corners of bbox
-                    # (bottom-center is wrong for top-down cameras)
-                    anchors = [
-                        ((x1 + x2) / 2.0, (y1 + y2) / 2.0),  # center
-                        (x1, y1), (x2, y1),                    # top corners
-                        (x1, y2), (x2, y2),                    # bottom corners
-                    ]
-                    if any(_point_in_polygon(pt, poly) for pt in anchors):
-                        occupied = True
-                        break
-                sp["occupied"] = occupied
+                mask = sp["_mask"]
+                if mask is None:
+                    continue
+                sp["occupied"] = _check_occupied(frame_gray, reference_gray, mask)
 
             occ = sum(1 for sp in space_states if sp["occupied"])
             free = len(space_states) - occ
@@ -182,16 +221,20 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
             monitor["last_update"] = datetime.now().isoformat()
             monitor["spaces"] = _export_spaces(space_states)
 
-            # --- Render MJPEG frame only if viewers are connected ---
+            # --- Render MJPEG only if viewers connected ---
             has_viewers = monitor.get("_viewers", 0) > 0
             if not has_viewers:
                 continue
 
-            _draw_spaces(frame, space_states)
-            cv2.putText(frame, f"OCC: {occ}/{len(space_states)}  FREE: {free}",
+            vis = frame.copy()
+            _draw_spaces(vis, space_states)
+            cv2.putText(vis, f"OCC: {occ}/{len(space_states)}  FREE: {free}",
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+            if monitor.get("has_reference"):
+                cv2.putText(vis, "REF OK", (10, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 55])
+            _, buf = cv2.imencode(".jpg", vis, [cv2.IMWRITE_JPEG_QUALITY, 55])
             monitor["_annotated_frame"] = buf.tobytes()
             monitor["_frame_seq"] = monitor.get("_frame_seq", 0) + 1
             event = monitor.get("_frame_event")
@@ -211,12 +254,8 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
 
 def _export_spaces(space_states: list[dict]) -> list[dict]:
     return [
-        {
-            "space_id": sp["space_id"],
-            "label": sp["label"],
-            "occupied": sp["occupied"],
-            "polygon": sp["polygon"],
-        }
+        {"space_id": sp["space_id"], "label": sp["label"],
+         "occupied": sp["occupied"], "polygon": sp["polygon"]}
         for sp in space_states
     ]
 
@@ -227,8 +266,8 @@ async def start_space_monitor(lot_id: int, spaces_data: list[dict],
         return {"error": "Already monitoring spaces for this parking lot"}
 
     stream_url = _resolve_url(overhead_url)
-
     total = len(spaces_data)
+
     monitor = {
         "lot_id": lot_id,
         "status": "starting",
@@ -238,6 +277,9 @@ async def start_space_monitor(lot_id: int, spaces_data: list[dict],
         "spaces": [],
         "last_update": None,
         "error": None,
+        "has_reference": False,
+        "reference_captured_at": None,
+        "_capture_reference": False,
         "_annotated_frame": None,
         "_frame_event": threading.Event(),
         "_frame_seq": 0,
@@ -247,7 +289,7 @@ async def start_space_monitor(lot_id: int, spaces_data: list[dict],
 
     thread = threading.Thread(
         target=_space_monitor_loop,
-        args=(lot_id, spaces_data, overhead_url, stream_url, model_name),
+        args=(lot_id, spaces_data, overhead_url, stream_url),
         daemon=True,
     )
     thread.start()
@@ -260,7 +302,6 @@ def stop_space_monitor(lot_id: int) -> dict:
     monitor = space_monitors.get(lot_id)
     if not monitor:
         return {"error": "No active space monitor for this parking lot"}
-
     monitor["status"] = "stopping"
 
     def _cleanup():
@@ -271,6 +312,15 @@ def stop_space_monitor(lot_id: int) -> dict:
 
     threading.Thread(target=_cleanup, daemon=True).start()
     return {"lot_id": lot_id, "status": "stopping"}
+
+
+def recapture_reference(lot_id: int) -> dict:
+    """Signal the monitor to re-capture a new reference frame."""
+    monitor = space_monitors.get(lot_id)
+    if not monitor or monitor["status"] != "running":
+        return {"error": "No running space monitor for this lot"}
+    monitor["_capture_reference"] = True
+    return {"lot_id": lot_id, "message": "Reference frame will be re-captured on next frame"}
 
 
 def get_space_monitor_status(lot_id: int) -> dict | None:
@@ -285,6 +335,8 @@ def get_space_monitor_status(lot_id: int) -> dict | None:
         "total_count": monitor["total_count"],
         "spaces": monitor.get("spaces", []),
         "last_update": monitor.get("last_update"),
+        "has_reference": monitor.get("has_reference", False),
+        "reference_captured_at": monitor.get("reference_captured_at"),
         "error": monitor.get("error"),
     }
 

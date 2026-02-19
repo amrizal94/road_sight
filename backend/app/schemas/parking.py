@@ -119,4 +119,6 @@ class SpaceMonitorStatus(BaseModel):
     total_count: int
     spaces: list[SpaceStatus]
     last_update: str | None
+    has_reference: bool = False
+    reference_captured_at: str | None = None
     error: str | None = None

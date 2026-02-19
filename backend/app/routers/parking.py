@@ -33,6 +33,7 @@ from ..services.space_monitor import (
     _resolve_url,
     _open_capture,
     get_space_monitor_status,
+    recapture_reference,
     space_monitors,
     start_space_monitor,
     stop_space_monitor,
@@ -386,15 +387,8 @@ def delete_space(lot_id: int, space_id: int, db: Session = Depends(get_db)):
 # Space Monitor
 # ──────────────────────────────────────────────
 
-class SpaceMonitorStartRequest(BaseModel):
-    model_config = {"protected_namespaces": ()}
-    model_name: str | None = None
-
-
 @router.post("/space-monitor/start/{lot_id}")
-async def space_monitor_start(lot_id: int,
-                               req: SpaceMonitorStartRequest = SpaceMonitorStartRequest(),
-                               db: Session = Depends(get_db)):
+async def space_monitor_start(lot_id: int, db: Session = Depends(get_db)):
     lot = db.query(ParkingLot).filter(ParkingLot.id == lot_id).first()
     if not lot:
         raise HTTPException(status_code=404, detail="Parking lot not found")
@@ -410,11 +404,20 @@ async def space_monitor_start(lot_id: int,
         for sp in spaces
     ]
     try:
-        result = await start_space_monitor(lot_id, spaces_data, lot.overhead_stream_url, req.model_name)
+        result = await start_space_monitor(lot_id, spaces_data, lot.overhead_stream_url)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if "error" in result:
         raise HTTPException(status_code=409, detail=result["error"])
+    return result
+
+
+@router.post("/space-monitor/recapture/{lot_id}")
+def space_monitor_recapture(lot_id: int):
+    """Re-capture reference frame (call when parking lot is empty)."""
+    result = recapture_reference(lot_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
     return result
 
 

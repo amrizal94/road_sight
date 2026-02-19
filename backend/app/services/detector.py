@@ -1,24 +1,48 @@
+import logging
+
 import numpy as np
 from ultralytics import YOLO
 
 from ..config import settings
 
-# COCO class IDs for vehicles
+logger = logging.getLogger(__name__)
+
+# Fallback: COCO class IDs (used when model names can't be parsed)
 VEHICLE_CLASSES = {1: "bicycle", 2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
 
+# Map model class name → our vehicle type label
+# Covers both COCO ("car", "motorcycle") and VisDrone ("van", "motor") naming
+_NAME_TO_VTYPE: dict[str, str] = {
+    "car": "car",
+    "van": "car",          # VisDrone
+    "automobile": "car",
+    "truck": "truck",
+    "lorry": "truck",
+    "bus": "bus",
+    "coach": "bus",
+    "motorcycle": "motorcycle",
+    "motorbike": "motorcycle",
+    "motor": "motorcycle",  # VisDrone
+    "bicycle": "bicycle",
+    "bike": "bicycle",
+}
+
 AVAILABLE_MODELS = [
+    # VisDrone — trained on aerial/overhead footage, better for parking detection from above
+    {"id": "models/yolov8n-visdrone.pt", "name": "YOLOv8n VisDrone", "description": "Overhead/aerial — cocok untuk kamera parkir atas"},
+    {"id": "models/yolov8s-visdrone.pt", "name": "YOLOv8s VisDrone", "description": "Overhead/aerial — lebih akurat, lebih berat"},
     # Custom models — must be placed in ./backend/models/ on the host
-    {"id": "models/yolo26n.pt", "name": "YOLO26 Nano", "description": "Tercepat, akurasi dasar"},
+    {"id": "models/yolo26n.pt", "name": "YOLO26 Nano",  "description": "Tercepat, akurasi dasar"},
     {"id": "models/yolo26s.pt", "name": "YOLO26 Small", "description": "Cepat, akurasi baik"},
-    {"id": "models/yolo26m.pt", "name": "YOLO26 Medium", "description": "Seimbang"},
+    {"id": "models/yolo26m.pt", "name": "YOLO26 Medium","description": "Seimbang"},
     {"id": "models/yolo26l.pt", "name": "YOLO26 Large", "description": "Akurat, butuh GPU"},
     {"id": "models/yolo26x.pt", "name": "YOLO26 Extra", "description": "Paling akurat, paling berat"},
-    # Standard Ultralytics models — auto-downloaded on first use if not in models/
-    {"id": "yolo11n.pt", "name": "YOLO11 Nano", "description": "Ringan, auto-download"},
-    {"id": "yolo11s.pt", "name": "YOLO11 Small", "description": "Seimbang, auto-download"},
-    {"id": "yolov8n.pt", "name": "YOLOv8 Nano", "description": "Ringan, auto-download (default)"},
-    {"id": "yolov8s.pt", "name": "YOLOv8 Small", "description": "Seimbang, auto-download"},
-    {"id": "yolov8x.pt", "name": "YOLOv8 Extra", "description": "Akurat, auto-download"},
+    # Standard Ultralytics models — auto-downloaded on first use
+    {"id": "yolo11n.pt",  "name": "YOLO11 Nano",  "description": "Ringan, auto-download"},
+    {"id": "yolo11s.pt",  "name": "YOLO11 Small", "description": "Seimbang, auto-download"},
+    {"id": "yolov8n.pt",  "name": "YOLOv8 Nano",  "description": "Ringan, auto-download (default)"},
+    {"id": "yolov8s.pt",  "name": "YOLOv8 Small", "description": "Seimbang, auto-download"},
+    {"id": "yolov8x.pt",  "name": "YOLOv8 Extra", "description": "Akurat, auto-download"},
 ]
 
 
@@ -28,17 +52,33 @@ class VehicleDetector:
         self.model = YOLO(self.model_name)
         self.confidence = settings.confidence_threshold
 
+        # Auto-detect vehicle class IDs from the model's own class names.
+        # This works for any model: COCO, VisDrone, custom, etc.
+        self._vehicle_ids: dict[int, str] = {}
+        for cls_id, name in self.model.names.items():
+            vtype = _NAME_TO_VTYPE.get(name.lower())
+            if vtype:
+                self._vehicle_ids[cls_id] = vtype
+
+        if self._vehicle_ids:
+            logger.info(f"Detector loaded: {self.model_name} | vehicle classes: {self._vehicle_ids}")
+        else:
+            # Fallback to hardcoded COCO IDs
+            self._vehicle_ids = dict(VEHICLE_CLASSES)
+            logger.warning(f"Detector: could not parse vehicle classes from {self.model_name}, using COCO defaults")
+
     def detect(self, frame: np.ndarray) -> list[dict]:
         results = self.model(frame, conf=self.confidence, verbose=False)[0]
         detections = []
         for box in results.boxes:
             cls_id = int(box.cls[0])
-            if cls_id in VEHICLE_CLASSES:
-                x1, y1, x2, y2 = box.xyxy[0].tolist()
-                detections.append({
-                    "bbox": [x1, y1, x2, y2],
-                    "confidence": float(box.conf[0]),
-                    "class_id": cls_id,
-                    "vehicle_type": VEHICLE_CLASSES[cls_id],
-                })
+            if cls_id not in self._vehicle_ids:
+                continue
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            detections.append({
+                "bbox": [x1, y1, x2, y2],
+                "confidence": float(box.conf[0]),
+                "class_id": cls_id,
+                "vehicle_type": self._vehicle_ids[cls_id],
+            })
         return detections
