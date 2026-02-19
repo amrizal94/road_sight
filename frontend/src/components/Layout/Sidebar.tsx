@@ -5,6 +5,7 @@ const MAIN_ITEMS = [
   { to: "/surveillance", label: "Surveillance", icon: "videocam" },
   { to: "/reports", label: "Reports", icon: "assessment" },
   { to: "/map", label: "Map", icon: "map" },
+  { to: "/parking", label: "Smart Parking", icon: "local_parking" },
 ];
 
 const OTHER_ITEMS = [

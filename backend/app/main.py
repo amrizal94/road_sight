@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
-from .routers import analytics, cameras, detections, stream, system
+from .routers import analytics, cameras, detections, parking, stream, system
 from .services.live_monitor import active_monitors, stop_all_monitors
+from .services.parking_monitor import stop_all_parking_monitors
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def on_startup():
 def on_shutdown():
     logger.info("Shutting down — stopping all live monitors...")
     stop_all_monitors()
+    stop_all_parking_monitors()
 
 
 app.add_middleware(
@@ -46,6 +48,7 @@ app.include_router(detections.router)
 app.include_router(analytics.router)
 app.include_router(stream.router)
 app.include_router(system.router)
+app.include_router(parking.router)
 
 ws_clients: list[WebSocket] = []
 

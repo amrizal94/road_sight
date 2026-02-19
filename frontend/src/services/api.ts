@@ -130,3 +130,84 @@ export interface SystemHealth {
 }
 
 export const getSystemHealth = () => api.get<SystemHealth>("/system/health");
+
+// Parking
+export interface ParkingLot {
+  id: number;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  total_spaces: number;
+  initial_occupied: number;
+  status: string;
+  stream_url: string | null;
+  created_at: string | null;
+}
+
+export interface ParkingLotCreate {
+  name: string;
+  address?: string;
+  latitude: number;
+  longitude: number;
+  total_spaces: number;
+  initial_occupied?: number;
+  status?: string;
+  stream_url?: string | null;
+}
+
+export interface OccupancyStatus {
+  lot_id: number;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  total_spaces: number;
+  occupied_spaces: number;
+  available_spaces: number;
+  occupancy_pct: number;
+  status_label: string;
+  status_color: string;
+  stream_url: string | null;
+  is_live: boolean;
+  line_in: number;
+  line_out: number;
+}
+
+export interface ParkingMonitorStatus {
+  lot_id: number;
+  stream_url: string | null;
+  status: string;
+  line_in: number;
+  line_out: number;
+  occupied_spaces: number;
+  last_update: string | null;
+  error: string | null;
+}
+
+export interface OccupancyTrend {
+  timestamp: string;
+  occupied_spaces: number;
+}
+
+export const getParkingLots = () => api.get<ParkingLot[]>("/parking/lots");
+export const getParkingLot = (id: number) => api.get<ParkingLot>(`/parking/lots/${id}`);
+export const createParkingLot = (data: ParkingLotCreate) =>
+  api.post<ParkingLot>("/parking/lots", data);
+export const updateParkingLot = (id: number, data: Partial<ParkingLotCreate>) =>
+  api.put<ParkingLot>(`/parking/lots/${id}`, data);
+export const deleteParkingLot = (id: number) =>
+  api.delete(`/parking/lots/${id}`);
+export const getParkingStatus = () =>
+  api.get<OccupancyStatus[]>("/parking/status");
+export const getParkingLotStatus = (id: number) =>
+  api.get<OccupancyStatus>(`/parking/status/${id}`);
+export const getParkingTrends = (id: number) =>
+  api.get<OccupancyTrend[]>(`/parking/trends/${id}`);
+
+export const startParkingMonitor = (id: number, modelName?: string) =>
+  api.post(`/parking/monitor/start/${id}`, { model_name: modelName ?? null });
+export const stopParkingMonitor = (id: number) =>
+  api.post(`/parking/monitor/stop/${id}`);
+export const getParkingMonitorStatus = (id: number) =>
+  api.get<ParkingMonitorStatus>(`/parking/monitor/status/${id}`);

@@ -6,8 +6,8 @@ export default defineConfig({
   server: {
     allowedHosts: ["roadsight.amrzaki.my.id"],
     proxy: {
-      "/api": "http://localhost:8001",
-      "/ws": { target: "ws://localhost:8001", ws: true },
+      "/api": "http://localhost:8000",
+      "/ws": { target: "ws://localhost:8000", ws: true },
     },
   },
 });
