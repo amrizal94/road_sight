@@ -42,6 +42,9 @@ services:
       - yolo_cache:/root/.config/Ultralytics
       # Optional: yt-dlp cookies file (place cookies.txt in project root)
       - ./cookies.txt:/app/cookies.txt
+      # YOLO model files — mounted from host so models can be swapped without rebuild
+      # Place .pt files in ./backend/ on the host before starting
+      - ./backend/models:/app/models
     depends_on:
       db:
         condition: service_healthy

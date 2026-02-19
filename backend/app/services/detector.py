@@ -7,16 +7,18 @@ from ..config import settings
 VEHICLE_CLASSES = {1: "bicycle", 2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
 
 AVAILABLE_MODELS = [
-    {"id": "yolo26n.pt", "name": "YOLO26 Nano", "description": "Tercepat, akurasi dasar"},
-    {"id": "yolo26s.pt", "name": "YOLO26 Small", "description": "Cepat, akurasi baik"},
-    {"id": "yolo26m.pt", "name": "YOLO26 Medium", "description": "Seimbang"},
-    {"id": "yolo26l.pt", "name": "YOLO26 Large", "description": "Akurat, butuh GPU"},
-    {"id": "yolo26x.pt", "name": "YOLO26 Extra", "description": "Paling akurat, paling berat"},
-    {"id": "yolo11n.pt", "name": "YOLO11 Nano", "description": "Legacy, ringan"},
-    {"id": "yolo11s.pt", "name": "YOLO11 Small", "description": "Legacy, seimbang"},
-    {"id": "yolov8n.pt", "name": "YOLOv8 Nano", "description": "Legacy v8, ringan"},
-    {"id": "yolov8s.pt", "name": "YOLOv8 Small", "description": "Legacy v8, seimbang"},
-    {"id": "yolov8x.pt", "name": "YOLOv8 Extra", "description": "Legacy v8, akurat"},
+    # Custom models — must be placed in ./backend/models/ on the host
+    {"id": "models/yolo26n.pt", "name": "YOLO26 Nano", "description": "Tercepat, akurasi dasar"},
+    {"id": "models/yolo26s.pt", "name": "YOLO26 Small", "description": "Cepat, akurasi baik"},
+    {"id": "models/yolo26m.pt", "name": "YOLO26 Medium", "description": "Seimbang"},
+    {"id": "models/yolo26l.pt", "name": "YOLO26 Large", "description": "Akurat, butuh GPU"},
+    {"id": "models/yolo26x.pt", "name": "YOLO26 Extra", "description": "Paling akurat, paling berat"},
+    # Standard Ultralytics models — auto-downloaded on first use if not in models/
+    {"id": "yolo11n.pt", "name": "YOLO11 Nano", "description": "Ringan, auto-download"},
+    {"id": "yolo11s.pt", "name": "YOLO11 Small", "description": "Seimbang, auto-download"},
+    {"id": "yolov8n.pt", "name": "YOLOv8 Nano", "description": "Ringan, auto-download (default)"},
+    {"id": "yolov8s.pt", "name": "YOLOv8 Small", "description": "Seimbang, auto-download"},
+    {"id": "yolov8x.pt", "name": "YOLOv8 Extra", "description": "Akurat, auto-download"},
 ]
 
 

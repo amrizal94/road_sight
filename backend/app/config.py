@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     postgres_db: str = "road_sight"
     backend_port: int = 8001
     frontend_port: int = 5173
-    yolo_model: str = "yolo26n.pt"
+    yolo_model: str = "yolov8n.pt"
     confidence_threshold: float = 0.25
     upload_dir: str = "videos"
     timezone: str = "Asia/Jakarta"
