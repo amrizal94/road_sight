@@ -70,7 +70,8 @@ export default function ParkingMonitor({ lotId, streamUrl, totalSpaces }: Props)
     setLoading(true);
     try {
       await stopParkingMonitor(lotId);
-      setStatus(null);
+      // Immediately reflect stopped state — don't wait for next poll
+      setStatus((prev) => prev ? { ...prev, status: "stopped" } : null);
     } catch (e: any) {
       setError(e.response?.data?.detail || e.message);
     }

@@ -54,6 +54,10 @@ def _monitor_loop(lot_id: int, initial_occupied: int, total_spaces: int,
     detector = VehicleDetector(model_name)
     tracker = VehicleTracker(frame_height)
 
+    # Guard: stop may have been requested while model was loading
+    if monitor.get("status") == "stopping":
+        logger.info(f"Parking lot {lot_id}: Stop requested before monitor started")
+        return
     monitor["status"] = "running"
     monitor["_line_y"] = frame_height // 2
     logger.info(f"Parking lot {lot_id}: Monitor started (model={model_name or settings.yolo_model})")
