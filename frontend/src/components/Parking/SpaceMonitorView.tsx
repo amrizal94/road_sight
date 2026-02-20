@@ -107,7 +107,11 @@ export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }
           <h4 className="text-sm font-semibold text-slate-300">Space Detection Monitor</h4>
           <p className="text-[11px] text-slate-500 mt-0.5">
             Mode:{" "}
-            {status?.detection_mode === "background"
+            {status?.detection_mode === "cnn"
+              ? "CNN Classifier (MobileNetV3 — paling akurat)"
+              : status?.detection_mode === "cnn+background"
+              ? "CNN + Background Subtraction (hybrid)"
+              : status?.detection_mode === "background"
               ? "Background Subtraction (akurat, butuh referensi kosong)"
               : "Texture Analysis (langsung jalan, tanpa referensi)"}
           </p>

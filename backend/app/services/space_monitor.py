@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from ..config import settings
+from .slot_classifier import get_slot_classifier, load_slot_classifier
 from .live_monitor import (
     FRAME_QUEUE_TIMEOUT,
     MAX_RECONNECT_ATTEMPTS,
@@ -33,6 +34,11 @@ space_monitors: dict[int, dict] = {}
 # Overlay colours (BGR)
 _COL_FREE = (0, 200, 0)   # green
 _COL_OCC  = (0, 0, 220)   # red
+
+# ── CNN classifier thresholds ────────────────────────────────────────────────
+CNN_HIGH = 0.75   # conf > CNN_HIGH  → occupied (confident)
+CNN_LOW  = 0.25   # conf < CNN_LOW   → free (confident)
+# 0.25 ≤ conf ≤ 0.75 → uncertain, fall through to next layer
 
 # ── Background subtraction (requires empty reference frame) ──────────────────
 BG_DIFF_THRESHOLD = 35    # mean absolute pixel difference
@@ -99,6 +105,64 @@ def _check_occupied_texture(frame_gray: np.ndarray, mask: np.ndarray) -> bool:
     return variance > TEXTURE_THRESHOLD
 
 
+def _crop_slot(frame: np.ndarray, polygon: list[list[float]]) -> np.ndarray:
+    """Bounding-rect crop of a slot polygon with 4 px padding."""
+    pts = np.array(polygon, dtype=np.int32)
+    x, y, w, h = cv2.boundingRect(pts)
+    pad = 4
+    fh, fw = frame.shape[:2]
+    x1 = max(0, x - pad)
+    y1 = max(0, y - pad)
+    x2 = min(fw, x + w + pad)
+    y2 = min(fh, y + h + pad)
+    return frame[y1:y2, x1:x2]
+
+
+def _detect_slot(
+    frame: np.ndarray,
+    frame_gray: np.ndarray,
+    ref_gray: np.ndarray | None,
+    sp: dict,
+) -> bool:
+    """
+    Hybrid 3-layer detection for a single slot.
+
+    Layer 1 — CNN (MobileNetV3-Small):
+        conf > CNN_HIGH  → occupied
+        conf < CNN_LOW   → free
+        uncertain        → fall through
+
+    Layer 2 — Background subtraction (if reference available):
+        Uses pixel diff against empty-lot reference frame.
+
+    Layer 3 — Texture / Laplacian variance (always available):
+        Last resort; no reference needed.
+    """
+    mask = sp["_mask"]
+
+    # Layer 1: CNN classifier
+    classifier = get_slot_classifier()
+    if classifier is not None:
+        crop = _crop_slot(frame, sp["polygon"])
+        if crop.size > 0:
+            conf = classifier.predict(crop)
+            if conf > CNN_HIGH:
+                return True
+            if conf < CNN_LOW:
+                return False
+            # uncertain → fall through to next layer
+
+    # Layer 2: Background subtraction
+    if ref_gray is not None and mask is not None:
+        return _check_occupied_bg(frame_gray, ref_gray, mask)
+
+    # Layer 3: Texture analysis
+    if mask is not None:
+        return _check_occupied_texture(frame_gray, mask)
+
+    return False
+
+
 def _draw_spaces(frame: np.ndarray, spaces: list[dict]) -> None:
     """Semi-transparent polygon overlays + labels (in-place)."""
     overlay = frame.copy()
@@ -141,7 +205,11 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
         return
 
     monitor["status"] = "running"
-    logger.info(f"Space monitor lot {lot_id}: started — {len(spaces_data)} spaces (background subtraction)")
+    cnn_active = get_slot_classifier() is not None
+    logger.info(
+        f"Space monitor lot {lot_id}: started — {len(spaces_data)} spaces "
+        f"({'CNN+fallback' if cnn_active else 'background/texture'})"
+    )
 
     # Build mutable space state with polygon masks
     space_states: list[dict] = []
@@ -222,20 +290,19 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 logger.info(f"Space monitor lot {lot_id}: reference frame captured")
                 continue  # skip detection on capture frame
 
-            monitor["detection_mode"] = "background" if reference_gray is not None else "texture"
+            # Determine active detection mode
+            has_cnn = get_slot_classifier() is not None
+            has_ref = reference_gray is not None
+            if has_cnn:
+                monitor["detection_mode"] = "cnn+background" if has_ref else "cnn"
+            else:
+                monitor["detection_mode"] = "background" if has_ref else "texture"
 
-            # --- Check each space ---
-            # Use background subtraction when reference is available (more accurate),
-            # otherwise fall back to texture analysis (works with any video).
-            use_bg = reference_gray is not None
+            # --- Check each space (hybrid 3-layer) ---
             for sp in space_states:
-                mask = sp["_mask"]
-                if mask is None:
+                if sp["_mask"] is None:
                     continue
-                if use_bg:
-                    sp["occupied"] = _check_occupied_bg(frame_gray, reference_gray, mask)
-                else:
-                    sp["occupied"] = _check_occupied_texture(frame_gray, mask)
+                sp["occupied"] = _detect_slot(frame, frame_gray, reference_gray, sp)
 
             occ = sum(1 for sp in space_states if sp["occupied"])
             free = len(space_states) - occ
@@ -289,6 +356,10 @@ async def start_space_monitor(lot_id: int, spaces_data: list[dict],
                                overhead_url: str, model_name: str | None = None) -> dict:
     if lot_id in space_monitors and space_monitors[lot_id]["status"] in ("running", "starting"):
         return {"error": "Already monitoring spaces for this parking lot"}
+
+    # Try to load CNN classifier (no-op if already loaded or path not configured)
+    if get_slot_classifier() is None:
+        load_slot_classifier(settings.parking_cnn_model)
 
     stream_url = _resolve_url(overhead_url)
     total = len(spaces_data)

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Jakarta"
     ytdlp_cookies_file: str = ""  # path to cookies.txt for yt-dlp (used on VPS)
     ytdlp_cookies_browser: str = "firefox"  # browser to read cookies from (local dev)
+    parking_cnn_model: str = ""  # path to .pt classifier, e.g. "models/parking_classifier.pt"
 
     @computed_field
     @property
