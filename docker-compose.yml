@@ -43,6 +43,8 @@ services:
       # YOLO model files — mounted from host so models can be swapped without rebuild
       # Place .pt files in ./backend/ on the host before starting
       - ./backend/models:/app/models
+      # yt-dlp cookies (Netscape format) — export from browser then set YTDLP_COOKIES_FILE=cookies.txt
+      # - ./backend/cookies.txt:/app/cookies.txt:ro
     depends_on:
       db:
         condition: service_healthy

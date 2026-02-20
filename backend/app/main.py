@@ -28,6 +28,9 @@ def on_startup():
         # Idempotent column migrations
         with engine.connect() as conn:
             conn.execute(text(
+                "ALTER TABLE parking_lots ADD COLUMN IF NOT EXISTS stream_url VARCHAR"
+            ))
+            conn.execute(text(
                 "ALTER TABLE parking_lots ADD COLUMN IF NOT EXISTS overhead_stream_url VARCHAR"
             ))
             conn.commit()

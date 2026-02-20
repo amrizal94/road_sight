@@ -67,7 +67,7 @@ def _draw_detections(frame: np.ndarray, tracked: list[dict], line_y: int) -> Non
 
 
 def _get_stream_url(youtube_url: str) -> str:
-    cmd = ["yt-dlp", "-g", "-f", "b", "--js-runtimes", "node", "--remote-components", "ejs:github"]
+    cmd = ["yt-dlp", "-g", "-f", "bv[height<=720]/bv/b"]
     if settings.ytdlp_cookies_file:
         # Resolve absolute path relative to this file's directory (backend/)
         cookies_path = Path(settings.ytdlp_cookies_file)
