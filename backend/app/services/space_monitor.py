@@ -49,6 +49,12 @@ MIN_OCCUPIED_RATIO = 0.15  # at least 15% of slot pixels must differ
 # Tune this value: raise if too many false positives, lower if misses cars.
 TEXTURE_THRESHOLD = 150.0
 
+# ── Frame-skip: run detection every N frames, render MJPEG every frame ────────
+# CNN is expensive (~200-700ms/frame on CPU). Skipping 4/5 detection frames
+# keeps MJPEG smooth while still updating slot states ~4-6x per second.
+# Raise DETECT_EVERY_N on slow hardware; lower it on fast hardware.
+DETECT_EVERY_N = 5
+
 
 def _resolve_url(url: str) -> str:
     """Use yt-dlp for YouTube URLs; return RTSP/HTTP URLs as-is."""
@@ -304,36 +310,36 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 logger.info(f"Space monitor lot {lot_id}: reference frame captured")
                 continue  # skip detection on capture frame
 
-            # Determine active detection mode
-            has_cnn = get_slot_classifier() is not None
-            has_ref = reference_gray is not None
-            if has_cnn:
-                monitor["detection_mode"] = "cnn+background" if has_ref else "cnn"
-            else:
-                monitor["detection_mode"] = "background" if has_ref else "texture"
-
-            # --- Check each space (hybrid 3-layer + temporal smoothing) ---
-            for sp in space_states:
-                if sp["_mask"] is None:
-                    continue
-                raw = _detect_slot(frame, frame_gray, reference_gray, sp)
-                if raw == sp["_pending"]:
-                    sp["_streak"] += 1
+            # --- Detection (throttled to every DETECT_EVERY_N frames) ---
+            run_detection = (frame_count % DETECT_EVERY_N == 0)
+            if run_detection:
+                has_cnn = get_slot_classifier() is not None
+                has_ref = reference_gray is not None
+                if has_cnn:
+                    monitor["detection_mode"] = "cnn+background" if has_ref else "cnn"
                 else:
-                    sp["_pending"] = raw
-                    sp["_streak"] = 1
-                # Only commit status change after CONFIRM_FRAMES consistent frames
-                if sp["_streak"] >= CONFIRM_FRAMES:
-                    sp["occupied"] = raw
+                    monitor["detection_mode"] = "background" if has_ref else "texture"
+                for sp in space_states:
+                    if sp["_mask"] is None:
+                        continue
+                    raw = _detect_slot(frame, frame_gray, reference_gray, sp)
+                    if raw == sp["_pending"]:
+                        sp["_streak"] += 1
+                    else:
+                        sp["_pending"] = raw
+                        sp["_streak"] = 1
+                    # Only commit status change after CONFIRM_FRAMES consistent frames
+                    if sp["_streak"] >= CONFIRM_FRAMES:
+                        sp["occupied"] = raw
 
-            occ = sum(1 for sp in space_states if sp["occupied"])
-            free = len(space_states) - occ
+                occ = sum(1 for sp in space_states if sp["occupied"])
+                free = len(space_states) - occ
 
-            monitor["occupied_count"] = occ
-            monitor["free_count"] = free
-            monitor["total_count"] = len(space_states)
-            monitor["last_update"] = datetime.now().isoformat()
-            monitor["spaces"] = _export_spaces(space_states)
+                monitor["occupied_count"] = occ
+                monitor["free_count"] = free
+                monitor["total_count"] = len(space_states)
+                monitor["last_update"] = datetime.now().isoformat()
+                monitor["spaces"] = _export_spaces(space_states)
 
             # Always save a clean (un-annotated) frame for SpaceEditor snapshotting
             _, raw_buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
@@ -346,7 +352,9 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
 
             vis = frame.copy()
             _draw_spaces(vis, space_states)
-            cv2.putText(vis, f"OCC: {occ}/{len(space_states)}  FREE: {free}",
+            _occ = monitor["occupied_count"]
+            _free = monitor["free_count"]
+            cv2.putText(vis, f"OCC: {_occ}/{len(space_states)}  FREE: {_free}",
                         (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
             if monitor.get("has_reference"):
                 cv2.putText(vis, "REF OK", (10, 60),
