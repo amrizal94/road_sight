@@ -106,15 +106,24 @@ def _check_occupied_texture(frame_gray: np.ndarray, mask: np.ndarray) -> bool:
 
 
 def _crop_slot(frame: np.ndarray, polygon: list[list[float]]) -> np.ndarray:
-    """Bounding-rect crop of a slot polygon with 4 px padding."""
+    """
+    Square crop centered on the slot polygon centroid.
+    Uses the longer side of the bounding rect as the square size,
+    so the CNN always receives a near-square input regardless of
+    how narrow/tall the drawn polygon is.
+    """
     pts = np.array(polygon, dtype=np.int32)
     x, y, w, h = cv2.boundingRect(pts)
-    pad = 4
     fh, fw = frame.shape[:2]
-    x1 = max(0, x - pad)
-    y1 = max(0, y - pad)
-    x2 = min(fw, x + w + pad)
-    y2 = min(fh, y + h + pad)
+
+    cx = x + w // 2
+    cy = y + h // 2
+    half = max(w, h) // 2 + 8   # +8 px context padding
+
+    x1 = max(0, cx - half)
+    y1 = max(0, cy - half)
+    x2 = min(fw, cx + half)
+    y2 = min(fh, cy + half)
     return frame[y1:y2, x1:x2]
 
 
@@ -312,6 +321,10 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
             monitor["total_count"] = len(space_states)
             monitor["last_update"] = datetime.now().isoformat()
             monitor["spaces"] = _export_spaces(space_states)
+
+            # Always save a clean (un-annotated) frame for SpaceEditor snapshotting
+            _, raw_buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            monitor["_raw_frame"] = raw_buf.tobytes()
 
             # --- Render MJPEG only if viewers connected ---
             has_viewers = monitor.get("_viewers", 0) > 0

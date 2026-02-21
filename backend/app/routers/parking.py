@@ -53,9 +53,13 @@ def _compute_occupancy(lot: ParkingLot, db: Session) -> OccupancyStatus:
 
     if space_live:
         occupied = sm["occupied_count"]
+        # Use mapped slot count as the capacity reference when space monitor is live,
+        # so "Total Kapasitas / Tersedia" is consistent with "Total Slot / Kosong".
+        total_spaces = sm.get("total_count") or lot.total_spaces
         line_in = line_out = 0
         is_live = True
     else:
+        total_spaces = lot.total_spaces
         # Priority 2: gate monitor (line counting)
         gm = parking_monitors.get(lot.id)
         gate_live = gm is not None and gm.get("status") == "running"
@@ -77,9 +81,9 @@ def _compute_occupancy(lot: ParkingLot, db: Session) -> OccupancyStatus:
             line_in = line_out = 0
             is_live = False
 
-    occupied = max(0, min(occupied, lot.total_spaces))
-    available = max(0, lot.total_spaces - occupied)
-    pct = (occupied / lot.total_spaces * 100) if lot.total_spaces > 0 else 0.0
+    occupied = max(0, min(occupied, total_spaces))
+    available = max(0, total_spaces - occupied)
+    pct = (occupied / total_spaces * 100) if total_spaces > 0 else 0.0
 
     if pct <= 50:
         label, color = "Tersedia", "#22c55e"
@@ -96,7 +100,7 @@ def _compute_occupancy(lot: ParkingLot, db: Session) -> OccupancyStatus:
         address=lot.address,
         latitude=lot.latitude,
         longitude=lot.longitude,
-        total_spaces=lot.total_spaces,
+        total_spaces=total_spaces,
         occupied_spaces=occupied,
         available_spaces=available,
         occupancy_pct=round(pct, 1),
@@ -496,11 +500,12 @@ def space_monitor_frame(lot_id: int, db: Session = Depends(get_db)):
     if not lot or not lot.overhead_stream_url:
         raise HTTPException(status_code=404, detail="No overhead stream URL configured")
 
-    # If space monitor is running, return its latest annotated frame
+    # If space monitor is running, return a clean (un-annotated) raw frame
+    # so SpaceEditor always gets a polygon-free frame for accurate polygon drawing
     monitor = space_monitors.get(lot_id)
-    if monitor and monitor.get("_annotated_frame"):
+    if monitor and monitor.get("_raw_frame"):
         return Response(
-            content=monitor["_annotated_frame"],
+            content=monitor["_raw_frame"],
             media_type="image/jpeg",
             headers={"Cache-Control": "no-store, no-cache"},
         )
@@ -527,6 +532,12 @@ def space_monitor_frame(lot_id: int, db: Session = Depends(get_db)):
 
     if frame is None:
         raise HTTPException(status_code=500, detail="Could not capture frame from overhead stream")
+
+    # Apply the same resize as space_monitor so polygon coordinates match
+    h, w = frame.shape[:2]
+    if w > 1280:
+        scale = 1280 / w
+        frame = cv2.resize(frame, None, fx=scale, fy=scale)
 
     _, buf = cv2.imencode(".jpg", frame)
     return Response(

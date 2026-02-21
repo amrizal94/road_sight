@@ -145,34 +145,37 @@ export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }
           >
             {loading ? "Menghentikan..." : "Stop"}
           </button>
-          <button
-            onClick={handleRecapture}
-            disabled={recapturing}
-            className="flex-1 bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm disabled:opacity-50 transition-colors"
-            title="Ambil ulang frame referensi (gunakan saat slot sedang kosong)"
-          >
-            {recapturing ? "Mengambil..." : "Set Referensi Baru"}
-          </button>
+          {/* Show reference button only when background subtraction is relevant */}
+          {status?.detection_mode !== "cnn" && (
+            <button
+              onClick={handleRecapture}
+              disabled={recapturing}
+              className="flex-1 bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm disabled:opacity-50 transition-colors"
+              title="Ambil ulang frame referensi (gunakan saat slot sedang kosong)"
+            >
+              {recapturing ? "Mengambil..." : "Set Referensi Baru"}
+            </button>
+          )}
         </div>
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      {/* Reference status */}
-      {isRunning && (
+      {/* Reference status — only relevant when not in pure CNN mode */}
+      {isRunning && status?.detection_mode !== "cnn" && (
         <div className={`flex items-center gap-2 px-3 py-2 rounded text-xs border ${
           status?.has_reference
             ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
             : "bg-amber-500/10 border-amber-500/30 text-amber-400"
         }`}>
           <span className="material-symbols-outlined text-sm">
-            {status?.has_reference ? "check_circle" : "hourglass_empty"}
+            {status?.has_reference ? "check_circle" : "info"}
           </span>
           {status?.has_reference
             ? `Referensi OK — diambil ${status.reference_captured_at
                 ? new Date(status.reference_captured_at).toLocaleTimeString("id-ID")
                 : ""}`
-            : "Mengambil frame referensi..."}
+            : "Referensi belum diset. Klik \"Set Referensi Baru\" saat slot kosong untuk akurasi lebih baik."}
         </div>
       )}
 
@@ -184,7 +187,7 @@ export default function SpaceMonitorView({ lotId, hasSpaces, overheadStreamUrl }
               ref={imgRef}
               src={`/api/parking/space-monitor/feed/${lotId}`}
               alt="Space detection feed"
-              className="w-full max-h-80 object-contain"
+              className="w-full max-h-96 object-contain"
             />
           </div>
 
