@@ -10,9 +10,12 @@ from sqlalchemy import text
 from .config import settings
 from .database import Base, engine
 from .routers import analytics, cameras, detections, parking, stream, system
+from .routers import bus as bus_router
 from .services.live_monitor import active_monitors, stop_all_monitors
 from .services.parking_monitor import stop_all_parking_monitors
 from .services.space_monitor import stop_all_space_monitors
+from .services.bus_monitor import stop_all_bus_monitors
+from .services.bus_seat_monitor import stop_all_bus_seat_monitors
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +48,8 @@ def on_shutdown():
     stop_all_monitors()
     stop_all_parking_monitors()
     stop_all_space_monitors()
+    stop_all_bus_monitors()
+    stop_all_bus_seat_monitors()
 
 
 app.add_middleware(
@@ -61,6 +66,7 @@ app.include_router(analytics.router)
 app.include_router(stream.router)
 app.include_router(system.router)
 app.include_router(parking.router)
+app.include_router(bus_router.router)
 
 ws_clients: list[WebSocket] = []
 

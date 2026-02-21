@@ -259,3 +259,121 @@ export const recaptureSpaceReference = (lotId: number) =>
   api.post(`/parking/space-monitor/recapture/${lotId}`);
 export const getSpaceMonitorStatus = (lotId: number) =>
   api.get<SpaceMonitorStatus>(`/parking/space-monitor/status/${lotId}`);
+
+// ── Smart Bus ──────────────────────────────────────────────────────────────
+
+export interface Bus {
+  id: number;
+  name: string;
+  number: string | null;
+  capacity: number;
+  route: string | null;
+  stream_url: string | null;
+  overhead_stream_url: string | null;
+  status: string;
+  created_at: string | null;
+}
+
+export interface BusCreate {
+  name: string;
+  number?: string | null;
+  capacity: number;
+  route?: string | null;
+  stream_url?: string | null;
+  overhead_stream_url?: string | null;
+  status?: string;
+}
+
+export interface BusStatus {
+  bus_id: number;
+  name: string;
+  number: string | null;
+  route: string | null;
+  capacity: number;
+  onboard: number;
+  available: number;
+  occupancy_pct: number;
+  status_label: string;
+  status_color: string;
+  stream_url: string | null;
+  overhead_stream_url: string | null;
+  is_live: boolean;
+  line_in: number;
+  line_out: number;
+}
+
+export interface BusMonitorStatus {
+  bus_id: number;
+  stream_url: string | null;
+  status: string;
+  line_in: number;
+  line_out: number;
+  passenger_count: number;
+  last_update: string | null;
+  error: string | null;
+}
+
+export interface PassengerTrend {
+  timestamp: string;
+  passenger_count: number;
+}
+
+export interface BusSeat {
+  id: number;
+  bus_id: number;
+  label: string;
+  polygon: number[][];
+}
+
+export interface SeatStatus {
+  seat_id: number;
+  label: string;
+  occupied: boolean;
+  polygon: number[][];
+}
+
+export interface SeatMonitorStatus {
+  bus_id: number;
+  status: string;
+  occupied_count: number;
+  free_count: number;
+  total_count: number;
+  seats: SeatStatus[];
+  last_update: string | null;
+  has_reference: boolean;
+  reference_captured_at: string | null;
+  detection_mode: string;
+  error: string | null;
+}
+
+export const getBuses = () => api.get<Bus[]>("/bus/buses");
+export const getBus = (id: number) => api.get<Bus>(`/bus/buses/${id}`);
+export const createBus = (data: BusCreate) => api.post<Bus>("/bus/buses", data);
+export const updateBus = (id: number, data: Partial<BusCreate>) =>
+  api.put<Bus>(`/bus/buses/${id}`, data);
+export const deleteBus = (id: number) => api.delete(`/bus/buses/${id}`);
+
+export const getBusStatuses = () => api.get<BusStatus[]>("/bus/status");
+export const getBusStatus = (id: number) => api.get<BusStatus>(`/bus/status/${id}`);
+export const getBusTrends = (id: number) => api.get<PassengerTrend[]>(`/bus/trends/${id}`);
+
+export const startBusMonitor = (id: number, modelName?: string) =>
+  api.post(`/bus/monitor/start/${id}`, { model_name: modelName ?? null });
+export const stopBusMonitor = (id: number) => api.post(`/bus/monitor/stop/${id}`);
+export const getBusMonitorStatus = (id: number) =>
+  api.get<BusMonitorStatus>(`/bus/monitor/status/${id}`);
+
+export const getBusSeats = (busId: number) => api.get<BusSeat[]>(`/bus/seats/${busId}`);
+export const createBusSeat = (busId: number, data: { label: string; polygon: number[][] }) =>
+  api.post<BusSeat>(`/bus/seats/${busId}`, data);
+export const deleteBusSeat = (busId: number, seatId: number) =>
+  api.delete(`/bus/seats/${busId}/${seatId}`);
+
+export const startSeatMonitor = (busId: number) =>
+  api.post(`/bus/seat-monitor/start/${busId}`);
+export const stopSeatMonitor = (busId: number) =>
+  api.post(`/bus/seat-monitor/stop/${busId}`);
+export const recaptureSeatReference = (busId: number) =>
+  api.post(`/bus/seat-monitor/recapture/${busId}`);
+export const getSeatMonitorStatus = (busId: number) =>
+  api.get<SeatMonitorStatus>(`/bus/seat-monitor/status/${busId}`);
