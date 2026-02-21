@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from datetime import datetime, timedelta
 
 import cv2
@@ -500,14 +501,22 @@ def space_monitor_frame(lot_id: int, db: Session = Depends(get_db)):
     if not lot or not lot.overhead_stream_url:
         raise HTTPException(status_code=404, detail="No overhead stream URL configured")
 
-    # If space monitor is running, return a clean (un-annotated) raw frame
-    # so SpaceEditor always gets a polygon-free frame for accurate polygon drawing
+    # If space monitor is running/starting, wait up to 5s for the first raw frame.
+    # This avoids re-opening the YouTube stream (which often fails in this context).
     monitor = space_monitors.get(lot_id)
-    if monitor and monitor.get("_raw_frame"):
-        return Response(
-            content=monitor["_raw_frame"],
-            media_type="image/jpeg",
-            headers={"Cache-Control": "no-store, no-cache"},
+    if monitor and monitor.get("status") in ("running", "starting"):
+        deadline = time.time() + 5.0
+        while time.time() < deadline:
+            if monitor.get("_raw_frame"):
+                return Response(
+                    content=monitor["_raw_frame"],
+                    media_type="image/jpeg",
+                    headers={"Cache-Control": "no-store, no-cache"},
+                )
+            time.sleep(0.1)
+        raise HTTPException(
+            status_code=503,
+            detail="Monitor sedang starting, belum ada frame. Coba lagi dalam beberapa detik.",
         )
 
     # Otherwise open the stream briefly and grab one raw frame
