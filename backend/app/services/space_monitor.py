@@ -226,9 +226,6 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
         f"({'CNN+fallback' if cnn_active else 'background/texture'})"
     )
 
-    # Temporal smoothing: only flip status after CONFIRM_FRAMES consecutive detections
-    CONFIRM_FRAMES = 3
-
     # Build mutable space state with polygon masks
     space_states: list[dict] = []
     for sp in spaces_data:
@@ -238,8 +235,6 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
             "polygon": sp["polygon"],
             "occupied": False,
             "_mask": None,        # built on first frame
-            "_pending": False,    # candidate new status
-            "_streak": 0,         # consecutive frames with _pending result
         })
     monitor["spaces"] = _export_spaces(space_states)
 
@@ -322,15 +317,7 @@ def _space_monitor_loop(lot_id: int, spaces_data: list[dict],
                 for sp in space_states:
                     if sp["_mask"] is None:
                         continue
-                    raw = _detect_slot(frame, frame_gray, reference_gray, sp)
-                    if raw == sp["_pending"]:
-                        sp["_streak"] += 1
-                    else:
-                        sp["_pending"] = raw
-                        sp["_streak"] = 1
-                    # Only commit status change after CONFIRM_FRAMES consistent frames
-                    if sp["_streak"] >= CONFIRM_FRAMES:
-                        sp["occupied"] = raw
+                    sp["occupied"] = _detect_slot(frame, frame_gray, reference_gray, sp)
 
                 occ = sum(1 for sp in space_states if sp["occupied"])
                 free = len(space_states) - occ
