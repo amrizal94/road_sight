@@ -1,9 +1,11 @@
 import asyncio
 import json
+import subprocess
 import time
 from datetime import datetime, timedelta
 
 import cv2
+import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from geoalchemy2.shape import from_shape
@@ -519,28 +521,37 @@ def space_monitor_frame(lot_id: int, db: Session = Depends(get_db)):
             detail="Monitor sedang starting, belum ada frame. Coba lagi dalam beberapa detik.",
         )
 
-    # Otherwise open the stream briefly and grab one raw frame
+    # Space monitor not running — grab one frame directly from the stream.
+    # Use ffmpeg (more reliable than cv2.VideoCapture for YouTube CDN URLs).
     try:
         stream_url = _resolve_url(lot.overhead_stream_url)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Cannot resolve stream URL: {e}")
+        raise HTTPException(status_code=400, detail=f"Gagal resolve stream URL: {e}")
 
-    cap = _open_capture(stream_url)
-    if not cap.isOpened():
-        raise HTTPException(status_code=400, detail="Cannot open overhead stream")
-
-    frame = None
     try:
-        for _ in range(60):
-            ret, f = cap.read()
-            if ret and f is not None:
-                frame = f
-                break
-    finally:
-        cap.release()
+        proc = subprocess.run(
+            [
+                "ffmpeg", "-y", "-loglevel", "error",
+                "-i", stream_url,
+                "-frames:v", "1",
+                "-f", "image2pipe", "-vcodec", "mjpeg",
+                "pipe:1",
+            ],
+            capture_output=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=400, detail="Timeout saat ambil frame dari stream")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="ffmpeg tidak ditemukan di server")
 
+    if proc.returncode != 0 or not proc.stdout:
+        raise HTTPException(status_code=400, detail="Gagal ambil frame dari overhead stream. Cek Overhead Stream URL.")
+
+    nparr = np.frombuffer(proc.stdout, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     if frame is None:
-        raise HTTPException(status_code=500, detail="Could not capture frame from overhead stream")
+        raise HTTPException(status_code=400, detail="Gagal decode frame dari stream")
 
     # Apply the same resize as space_monitor so polygon coordinates match
     h, w = frame.shape[:2]
