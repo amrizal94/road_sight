@@ -105,6 +105,11 @@ class FrameReader:
 
     def __init__(self, cap: cv2.VideoCapture):
         self._cap = cap
+        # Throttle to source FPS so buffered HLS/YouTube streams aren't read faster
+        # than real-time. cap.get(FPS) may return 0 for some streams → default 25.
+        raw_fps = cap.get(cv2.CAP_PROP_FPS)
+        fps = raw_fps if 1 <= raw_fps <= 120 else 25.0
+        self._frame_interval = 1.0 / fps
         self._queue: Queue = Queue(maxsize=8)  # Buffer for stream stalls
         self._stopped = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -112,9 +117,18 @@ class FrameReader:
 
     def _run(self):
         consecutive_failures = 0
+        last_read = time.time()
         while not self._stopped.is_set():
+            # Throttle: wait until next frame slot to avoid reading buffered
+            # HLS segments faster than the original stream's real-time FPS.
+            now = time.time()
+            wait = self._frame_interval - (now - last_read)
+            if wait > 0:
+                time.sleep(wait)
+
             try:
                 ret, frame = self._cap.read()
+                last_read = time.time()
                 if not ret:
                     consecutive_failures += 1
                     if consecutive_failures > 30:
