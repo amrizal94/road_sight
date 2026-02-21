@@ -105,6 +105,7 @@ export interface YoloModel {
   id: string;
   name: string;
   description: string;
+  available: boolean;
 }
 
 export const getModels = () => api.get<YoloModel[]>("/stream/models");

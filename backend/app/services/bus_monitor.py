@@ -9,6 +9,8 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import os
+
 import cv2
 
 from ..config import settings
@@ -56,6 +58,9 @@ def _monitor_loop(bus_id: int, capacity: int,
         return
 
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    if model_name and not os.path.exists(model_name):
+        logger.warning(f"Bus {bus_id}: Model '{model_name}' not found, using default ({settings.yolo_model})")
+        model_name = None
     detector = VehicleDetector(model_name)
     tracker = VehicleTracker(frame_height)
 

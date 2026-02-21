@@ -102,7 +102,11 @@ class LiveMonitorRequest(BaseModel):
 
 @router.get("/models")
 def list_models():
-    return AVAILABLE_MODELS
+    result = []
+    for m in AVAILABLE_MODELS:
+        available = os.path.exists(m["id"])
+        result.append({**m, "available": available})
+    return result
 
 
 @router.post("/live/start")

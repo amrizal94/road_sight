@@ -26,8 +26,11 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
 
   useEffect(() => {
     getModels().then((r) => {
-      setModels(r.data);
-      if (r.data.length > 0) setSelectedModel(r.data[0].id);
+      // VisDrone models are trained on aerial footage — not suitable for person detection at bus doors
+      const cocoModels = r.data.filter((m: YoloModel) => !m.id.toLowerCase().includes("visdrone"));
+      setModels(cocoModels);
+      const first = cocoModels.find((m: YoloModel) => m.available) ?? cocoModels[0];
+      if (first) setSelectedModel(first.id);
     }).catch(() => {});
   }, []);
 
@@ -109,7 +112,9 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
             className="bg-card-dark border border-slate-700 text-white rounded px-3 py-2 w-full text-sm focus:border-primary focus:outline-none"
           >
             {models.map((m) => (
-              <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+              <option key={m.id} value={m.id} disabled={!m.available}>
+                {m.available ? "" : "[Tidak tersedia] "}{m.name} — {m.description}
+              </option>
             ))}
           </select>
           <button

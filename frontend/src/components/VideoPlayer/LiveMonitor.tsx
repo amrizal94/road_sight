@@ -48,8 +48,9 @@ export default function LiveMonitor({ cameraId }: Props) {
   useEffect(() => {
     getModels().then((res) => {
       setModels(res.data);
-      if (res.data.length > 0 && !selectedModel) {
-        setSelectedModel(res.data[0].id);
+      if (!selectedModel) {
+        const first = res.data.find((m: YoloModel) => m.available) ?? res.data[0];
+        if (first) setSelectedModel(first.id);
       }
     }).catch(() => {});
   }, []);
@@ -184,8 +185,8 @@ export default function LiveMonitor({ cameraId }: Props) {
             className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 w-full text-sm focus:border-primary focus:outline-none"
           >
             {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} — {m.description}
+              <option key={m.id} value={m.id} disabled={!m.available}>
+                {m.available ? "" : "[Tidak tersedia] "}{m.name} — {m.description}
               </option>
             ))}
           </select>

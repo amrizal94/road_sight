@@ -27,7 +27,8 @@ export default function ParkingMonitor({ lotId, streamUrl, totalSpaces }: Props)
   useEffect(() => {
     getModels().then((r) => {
       setModels(r.data);
-      if (r.data.length > 0) setSelectedModel(r.data[0].id);
+      const first = r.data.find((m: YoloModel) => m.available) ?? r.data[0];
+      if (first) setSelectedModel(first.id);
     }).catch(() => {});
   }, []);
 
@@ -112,7 +113,9 @@ export default function ParkingMonitor({ lotId, streamUrl, totalSpaces }: Props)
             className="bg-card-dark border border-slate-700 text-white rounded px-3 py-2 w-full text-sm focus:border-primary focus:outline-none"
           >
             {models.map((m) => (
-              <option key={m.id} value={m.id}>{m.name} — {m.description}</option>
+              <option key={m.id} value={m.id} disabled={!m.available}>
+                {m.available ? "" : "[Tidak tersedia] "}{m.name} — {m.description}
+              </option>
             ))}
           </select>
           <button
