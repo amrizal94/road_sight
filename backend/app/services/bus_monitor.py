@@ -114,20 +114,7 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
     # through the door-crossing zone where people are partially occluded / motion-blurred.
     BUS_CONFIDENCE = 0.15
     detector = PersonDetector(model_name, confidence=BUS_CONFIDENCE)
-    # ByteTrack tuning for bus door counting:
-    # - track_activation_threshold=0.10: create tracks at conf ≥ 0.10 (below our 0.15 detect conf)
-    #   so every detection in the door zone gets a stable tracker_id for crossing detection.
-    #   Default 0.25 would miss detections at 0.15–0.24 (exactly the door-crossing range).
-    # - lost_track_buffer=60: keep tracks for 2.4s at 25fps (default 30 = 1s at 30fps).
-    #   Passengers can be fully occluded for ~0.5–1s while passing through the door frame.
-    # - frame_rate=25: match actual YouTube/RTSP stream fps for correct buffer time.
-    tracker = VehicleTracker(
-        frame_height,
-        track_activation_threshold=0.10,
-        lost_track_buffer=60,
-        minimum_matching_threshold=0.7,
-        frame_rate=25,
-    )
+    tracker = VehicleTracker(frame_height)
 
     if monitor.get("status") == "stopping":
         logger.info(f"Bus {bus_id}: Stop requested before monitor started")
@@ -209,6 +196,10 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
 
             if frame_idx == 1:
                 logger.info(f"Bus {bus_id}: First frame received, size={frame.shape[:2]}")
+            prev_in = monitor.get("line_in", 0)
+            prev_out = monitor.get("line_out", 0)
+            if line_in != prev_in or line_out != prev_out:
+                logger.info(f"Bus {bus_id}: Crossing — in={line_in} out={line_out} (frame {frame_idx})")
 
             monitor["frame_count"] = frame_idx
             monitor["line_in"] = line_in
