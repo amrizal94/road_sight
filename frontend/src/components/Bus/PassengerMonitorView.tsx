@@ -26,10 +26,20 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
 
   useEffect(() => {
     getModels().then((r) => {
-      // VisDrone models are trained on aerial footage — not suitable for person detection at bus doors
-      const cocoModels = r.data.filter((m: YoloModel) => !m.id.toLowerCase().includes("visdrone"));
-      setModels(cocoModels);
-      const first = cocoModels.find((m: YoloModel) => m.available) ?? cocoModels[0];
+      // Filter models unsuitable for person detection:
+      // - VisDrone: trained on aerial vehicle/pedestrian footage, poor at bus door angles
+      // - yolo26: custom vehicle-optimised model, poor person detection (tested empirically)
+      const personModels = r.data.filter((m: YoloModel) =>
+        !m.id.toLowerCase().includes("visdrone") &&
+        !m.id.toLowerCase().includes("yolo26")
+      );
+      setModels(personModels);
+      // Prefer standard COCO models known to work well for person detection
+      const PREFERRED = ["yolov8n.pt", "yolo11n.pt", "yolov8s.pt", "yolo11s.pt"];
+      const preferred = personModels.find((m: YoloModel) =>
+        m.available && PREFERRED.some((p) => m.id.endsWith(p))
+      );
+      const first = preferred ?? personModels.find((m: YoloModel) => m.available) ?? personModels[0];
       if (first) setSelectedModel(first.id);
     }).catch(() => {});
   }, []);

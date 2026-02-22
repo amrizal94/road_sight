@@ -49,7 +49,13 @@ export default function LiveMonitor({ cameraId }: Props) {
     getModels().then((res) => {
       setModels(res.data);
       if (!selectedModel) {
-        const first = res.data.find((m: YoloModel) => m.available) ?? res.data[0];
+        // Prefer standard COCO models for vehicle detection at traffic cameras.
+        // yolo26 models are listed after COCO as a secondary option.
+        const PREFERRED = ["yolov8n.pt", "yolo11n.pt", "yolov8s.pt", "yolo11s.pt", "yolo26n.pt"];
+        const preferred = res.data.find((m: YoloModel) =>
+          m.available && PREFERRED.some((p) => m.id.endsWith(p))
+        );
+        const first = preferred ?? res.data.find((m: YoloModel) => m.available) ?? res.data[0];
         if (first) setSelectedModel(first.id);
       }
     }).catch(() => {});

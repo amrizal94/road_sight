@@ -28,21 +28,36 @@ _NAME_TO_VTYPE: dict[str, str] = {
 }
 
 AVAILABLE_MODELS = [
-    # VisDrone — trained on aerial/overhead footage, better for parking detection from above
-    {"id": "models/yolov8n-visdrone.pt", "name": "YOLOv8n VisDrone", "description": "Overhead/aerial — cocok untuk kamera parkir atas"},
-    {"id": "models/yolov8s-visdrone.pt", "name": "YOLOv8s VisDrone", "description": "Overhead/aerial — lebih akurat, lebih berat"},
-    # Custom models — must be placed in ./backend/models/ on the host
-    {"id": "models/yolo26n.pt", "name": "YOLO26 Nano",  "description": "Tercepat, akurasi dasar"},
-    {"id": "models/yolo26s.pt", "name": "YOLO26 Small", "description": "Cepat, akurasi baik"},
-    {"id": "models/yolo26m.pt", "name": "YOLO26 Medium","description": "Seimbang"},
-    {"id": "models/yolo26l.pt", "name": "YOLO26 Large", "description": "Akurat, butuh GPU"},
-    {"id": "models/yolo26x.pt", "name": "YOLO26 Extra", "description": "Paling akurat, paling berat"},
-    # Standard Ultralytics models — auto-downloaded on first use
-    {"id": "yolo11n.pt",  "name": "YOLO11 Nano",  "description": "Ringan, auto-download"},
-    {"id": "yolo11s.pt",  "name": "YOLO11 Small", "description": "Seimbang, auto-download"},
-    {"id": "yolov8n.pt",  "name": "YOLOv8 Nano",  "description": "Ringan, auto-download (default)"},
-    {"id": "yolov8s.pt",  "name": "YOLOv8 Small", "description": "Seimbang, auto-download"},
-    {"id": "yolov8x.pt",  "name": "YOLOv8 Extra", "description": "Akurat, auto-download"},
+    # VisDrone — trained on aerial/overhead footage, best for overhead parking cameras.
+    # NOT suitable for person detection or side-angle vehicle counting.
+    {"id": "models/yolov8n-visdrone.pt", "name": "YOLOv8n VisDrone",
+     "description": "Khusus overhead/aerial — terbaik untuk kamera parkir atas, tidak cocok untuk deteksi orang"},
+    {"id": "models/yolov8s-visdrone.pt", "name": "YOLOv8s VisDrone",
+     "description": "Khusus overhead/aerial (lebih akurat) — terbaik untuk kamera parkir atas, tidak cocok untuk deteksi orang"},
+    # YOLO26 custom models — optimised for vehicle detection in traffic scenarios.
+    # Class names are COCO but person detection performance is poor.
+    # Recommended for: traffic monitor, parking gate. NOT recommended for: bus passenger counter.
+    {"id": "models/yolo26n.pt", "name": "YOLO26 Nano",
+     "description": "Tercepat — vehicle detection, tidak direkomendasikan untuk deteksi orang"},
+    {"id": "models/yolo26s.pt", "name": "YOLO26 Small",
+     "description": "Cepat — vehicle detection, tidak direkomendasikan untuk deteksi orang"},
+    {"id": "models/yolo26m.pt", "name": "YOLO26 Medium",
+     "description": "Seimbang — vehicle detection, tidak direkomendasikan untuk deteksi orang"},
+    {"id": "models/yolo26l.pt", "name": "YOLO26 Large",
+     "description": "Akurat — vehicle detection, butuh GPU, tidak direkomendasikan untuk deteksi orang"},
+    {"id": "models/yolo26x.pt", "name": "YOLO26 Extra",
+     "description": "Paling akurat — vehicle detection, butuh GPU, tidak direkomendasikan untuk deteksi orang"},
+    # Standard Ultralytics COCO models — recommended for both vehicle and person detection.
+    {"id": "yolo11n.pt",  "name": "YOLO11 Nano",
+     "description": "Versi terbaru Ultralytics — lebih akurat dari YOLOv8, tetap ringan. Cocok untuk orang & kendaraan"},
+    {"id": "yolo11s.pt",  "name": "YOLO11 Small",
+     "description": "Versi terbaru — akurasi tinggi, tetap cepat. Cocok untuk orang & kendaraan"},
+    {"id": "yolov8n.pt",  "name": "YOLOv8 Nano",
+     "description": "Ringan dan andal — direkomendasikan untuk deteksi orang & kendaraan (default)"},
+    {"id": "yolov8s.pt",  "name": "YOLOv8 Small",
+     "description": "Akurasi lebih baik dari Nano — cocok untuk orang & kendaraan"},
+    {"id": "yolov8x.pt",  "name": "YOLOv8 Extra",
+     "description": "Paling akurat — cocok untuk orang & kendaraan, butuh GPU"},
 ]
 
 

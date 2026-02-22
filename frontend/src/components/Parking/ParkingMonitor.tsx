@@ -27,7 +27,13 @@ export default function ParkingMonitor({ lotId, streamUrl, totalSpaces }: Props)
   useEffect(() => {
     getModels().then((r) => {
       setModels(r.data);
-      const first = r.data.find((m: YoloModel) => m.available) ?? r.data[0];
+      // Prefer standard COCO models for vehicle detection at parking gate cameras.
+      // VisDrone is better for overhead space detection (handled by SpaceMonitor, not here).
+      const PREFERRED = ["yolov8n.pt", "yolo11n.pt", "yolov8s.pt", "yolo11s.pt", "yolo26n.pt"];
+      const preferred = r.data.find((m: YoloModel) =>
+        m.available && PREFERRED.some((p) => m.id.endsWith(p))
+      );
+      const first = preferred ?? r.data.find((m: YoloModel) => m.available) ?? r.data[0];
       if (first) setSelectedModel(first.id);
     }).catch(() => {});
   }, []);
