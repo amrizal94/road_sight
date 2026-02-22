@@ -97,7 +97,11 @@ def _open_capture(stream_url: str) -> cv2.VideoCapture:
     os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "error"
 
     cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    # Only set buffer size 1 for RTSP (low-latency live stream).
+    # For HTTP/YouTube CDN MP4/HLS, leave default — setting BUFFERSIZE
+    # on FFMPEG backend disrupts container parsing and drops frames.
+    if stream_url.startswith("rtsp://"):
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     return cap
 
 
@@ -174,6 +178,108 @@ class FrameReader:
     def stop(self):
         self._stopped.set()
         self._cap.release()
+
+
+def _ffprobe_stream(stream_url: str) -> tuple[int, int, float]:
+    """Return (width, height, fps) by probing the stream with ffprobe."""
+    import json
+    cmd = [
+        "ffprobe", "-v", "quiet", "-print_format", "json",
+        "-show_streams", "-select_streams", "v:0", stream_url,
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        data = json.loads(result.stdout)
+        s = data["streams"][0]
+        w = int(s["width"])
+        h = int(s["height"])
+        fps_str = s.get("r_frame_rate", "25/1")
+        num, den = fps_str.split("/")
+        fps = float(num) / float(den) if float(den) != 0 else 25.0
+        logger.info(f"ffprobe: {w}x{h} @ {fps:.1f}fps")
+        return w, h, fps
+    except Exception as e:
+        logger.warning(f"ffprobe failed ({e}), will use cv2 probe fallback")
+        return 0, 0, 25.0
+
+
+class FFmpegReader:
+    """
+    Frame reader using ffmpeg subprocess — reliable for YouTube CDN / HTTP URLs.
+    cv2.VideoCapture over HTTP drops after a few frames (FFMPEG closes the HTTP
+    connection after reading the initial buffer). ffmpeg handles reconnect internally.
+
+    Same interface as FrameReader: .read(timeout) / .stop()
+    """
+
+    def __init__(self, stream_url: str, width: int, height: int, fps: float = 25.0):
+        self._url = stream_url
+        self.width = width
+        self.height = height
+        self.fps = fps if 1 <= fps <= 120 else 25.0
+        self._frame_size = width * height * 3  # BGR24
+        self._queue: Queue = Queue(maxsize=8)
+        self._stopped = threading.Event()
+        self._proc: subprocess.Popen | None = None
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        # -re: read input at native frame rate (real-time) to avoid burning CPU
+        # on buffered HLS/CDN content faster than playback speed.
+        cmd = [
+            "ffmpeg", "-loglevel", "error",
+            "-re",
+            "-i", self._url,
+            "-f", "rawvideo", "-pix_fmt", "bgr24",
+            "pipe:1",
+        ]
+        frames_read = 0
+        try:
+            self._proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            )
+            while not self._stopped.is_set():
+                raw = self._proc.stdout.read(self._frame_size)
+                if len(raw) < self._frame_size:
+                    logger.warning(f"FFmpegReader: stream ended after {frames_read} frames")
+                    try:
+                        self._queue.put(None, timeout=1)
+                    except Full:
+                        pass
+                    break
+                frame = np.frombuffer(raw, dtype=np.uint8).reshape(
+                    (self.height, self.width, 3)
+                ).copy()
+                frames_read += 1
+                if frames_read == 1:
+                    logger.warning(f"FFmpegReader: first frame OK ({self.width}x{self.height} @ {self.fps:.0f}fps)")
+                if self._queue.full():
+                    try:
+                        self._queue.get_nowait()
+                    except Empty:
+                        pass
+                self._queue.put(frame, timeout=1)
+        except Exception as e:
+            logger.error(f"FFmpegReader: exception after {frames_read} frames: {e}")
+            try:
+                self._queue.put(None, timeout=1)
+            except Full:
+                pass
+        finally:
+            if self._proc and self._proc.poll() is None:
+                self._proc.terminate()
+
+    def read(self, timeout: float = FRAME_QUEUE_TIMEOUT):
+        try:
+            return self._queue.get(timeout=timeout)
+        except Empty:
+            return None
+
+    def stop(self):
+        self._stopped.set()
+        if self._proc and self._proc.poll() is None:
+            self._proc.terminate()
 
 
 def _monitor_loop(camera_id: int, youtube_url: str, stream_url: str, ws_callback,

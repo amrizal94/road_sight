@@ -24,8 +24,10 @@ from .live_monitor import (
     RECONNECT_DELAY_BASE,
     RECONNECT_DELAY_MAX,
     STREAM_DEAD_TIMEOUT,
+    FFmpegReader,
     FrameReader,
     _draw_detections,
+    _ffprobe_stream,
     _get_stream_url,
     _open_capture,
 )
@@ -59,16 +61,51 @@ def _monitor_loop(bus_id: int, capacity: int,
             monitor["error"] = str(e)
 
 
+def _make_reader(stream_url: str, bus_id: int) -> tuple["FrameReader | FFmpegReader", int]:
+    """
+    Return (reader, frame_height).
+    - RTSP → cv2.VideoCapture + FrameReader (low-latency, buffered live stream)
+    - HTTP/YouTube CDN → FFmpegReader (ffmpeg subprocess pipe, handles reconnect)
+    """
+    is_rtsp = stream_url.startswith("rtsp://")
+    if is_rtsp:
+        cap = _open_capture(stream_url)
+        if not cap.isOpened():
+            return None, 0
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if frame_height == 0:
+            ret, tmp = cap.read()
+            if ret:
+                frame_height = tmp.shape[0]
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        return FrameReader(cap), frame_height
+    else:
+        # Use ffprobe to get dimensions, then start ffmpeg pipe reader.
+        w, h, fps = _ffprobe_stream(stream_url)
+        if h == 0:
+            # ffprobe failed — try one frame via cv2 as fallback
+            cap = _open_capture(stream_url)
+            ret, tmp = cap.read()
+            cap.release()
+            if ret:
+                h, w = tmp.shape[:2]
+                fps = 25.0
+            else:
+                logger.error(f"Bus {bus_id}: Cannot probe stream dimensions")
+                return None, 0
+        reader = FFmpegReader(stream_url, width=w, height=h, fps=fps)
+        return reader, h
+
+
 def _monitor_loop_inner(bus_id: int, capacity: int,
                         stream_origin: str, stream_url: str, model_name: str | None, monitor: dict):
-    cap = _open_capture(stream_url)
-    if not cap.isOpened():
+    reader, frame_height = _make_reader(stream_url, bus_id)
+    if reader is None:
         monitor["status"] = "error"
         monitor["error"] = "Cannot open stream"
         logger.error(f"Bus {bus_id}: Cannot open stream")
         return
 
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     if model_name and not os.path.exists(model_name):
         logger.warning(f"Bus {bus_id}: Model '{model_name}' not found, using default ({settings.yolo_model})")
         model_name = None
@@ -77,14 +114,9 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
 
     if monitor.get("status") == "stopping":
         logger.info(f"Bus {bus_id}: Stop requested before monitor started")
+        reader.stop()
         return
     monitor["status"] = "running"
-    # frame_height from cap.get() can be 0 before first frame — read one frame to get real size
-    if frame_height == 0:
-        ret, tmp = cap.read()
-        if ret:
-            frame_height = tmp.shape[0]
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # seek back if possible
     # Line at 35% from top — bus door cameras capture people in upper portion of frame
     line_y = max(int(frame_height * 0.35), 1)
     monitor["_line_y"] = line_y
@@ -95,7 +127,6 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
     )
     logger.warning(f"Bus {bus_id}: Passenger monitor started (model={model_name or settings.yolo_model}, frame={frame_height}, line_y={line_y})")
 
-    reader = FrameReader(cap)
     frame_idx = 0
     last_frame_time = time.time()
     reconnect_attempts = 0
@@ -131,10 +162,9 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
                     logger.error(f"Bus {bus_id}: URL resolve failed: {e}")
                     continue
 
-                cap = _open_capture(stream_url)
-                if not cap.isOpened():
+                reader, _ = _make_reader(stream_url, bus_id)
+                if reader is None:
                     continue
-                reader = FrameReader(cap)
                 last_frame_time = time.time()
                 continue
 

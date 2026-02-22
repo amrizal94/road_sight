@@ -61,11 +61,11 @@ class PersonDetector:
                 self._person_ids.add(cls_id)
 
         if self._person_ids:
-            logger.info(f"PersonDetector loaded: {self.model_name} | person IDs: {self._person_ids}")
+            logger.warning(f"PersonDetector loaded: {self.model_name} | person IDs: {self._person_ids}")
         else:
             # Fallback: COCO class 0 is always 'person'
             self._person_ids = {0}
-            logger.warning(f"PersonDetector: no person class found in {self.model_name}, using COCO class 0")
+            logger.warning(f"PersonDetector: WARNING — no person class found in {self.model_name}, falling back to class 0 (may be wrong for non-COCO models!)")
 
     def detect(self, frame: np.ndarray) -> list[dict]:
         results = self.model(frame, conf=self.confidence, verbose=False)[0]
