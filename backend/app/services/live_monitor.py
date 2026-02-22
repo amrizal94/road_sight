@@ -30,6 +30,7 @@ BBOX_COLORS = {
     "bus": (0, 200, 0),
     "truck": (0, 0, 255),
     "bicycle": (255, 0, 200),
+    "person": (0, 255, 128),
 }
 
 MAX_RECONNECT_ATTEMPTS = 10

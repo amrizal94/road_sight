@@ -16,7 +16,7 @@ import cv2
 from ..config import settings
 from ..database import SessionLocal
 from ..models.bus import PassengerSnapshot
-from .detector import VehicleDetector
+from .detector import PersonDetector
 from .live_monitor import (
     FRAME_QUEUE_TIMEOUT,
     MAX_RECONNECT_ATTEMPTS,
@@ -61,7 +61,7 @@ def _monitor_loop(bus_id: int, capacity: int,
     if model_name and not os.path.exists(model_name):
         logger.warning(f"Bus {bus_id}: Model '{model_name}' not found, using default ({settings.yolo_model})")
         model_name = None
-    detector = VehicleDetector(model_name)
+    detector = PersonDetector(model_name)
     tracker = VehicleTracker(frame_height)
 
     if monitor.get("status") == "stopping":

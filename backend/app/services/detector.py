@@ -46,6 +46,44 @@ AVAILABLE_MODELS = [
 ]
 
 
+class PersonDetector:
+    """YOLO detector that tracks only the 'person' class — for bus passenger counting."""
+
+    def __init__(self, model_name: str | None = None):
+        self.model_name = model_name or settings.yolo_model
+        self.model = YOLO(self.model_name)
+        self.confidence = settings.confidence_threshold
+
+        # Find person class ID(s) from the model's own names
+        self._person_ids: set[int] = set()
+        for cls_id, name in self.model.names.items():
+            if name.lower() in ("person", "pedestrian", "people"):
+                self._person_ids.add(cls_id)
+
+        if self._person_ids:
+            logger.info(f"PersonDetector loaded: {self.model_name} | person IDs: {self._person_ids}")
+        else:
+            # Fallback: COCO class 0 is always 'person'
+            self._person_ids = {0}
+            logger.warning(f"PersonDetector: no person class found in {self.model_name}, using COCO class 0")
+
+    def detect(self, frame: np.ndarray) -> list[dict]:
+        results = self.model(frame, conf=self.confidence, verbose=False)[0]
+        detections = []
+        for box in results.boxes:
+            cls_id = int(box.cls[0])
+            if cls_id not in self._person_ids:
+                continue
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            detections.append({
+                "bbox": [x1, y1, x2, y2],
+                "confidence": float(box.conf[0]),
+                "class_id": cls_id,
+                "vehicle_type": "person",
+            })
+        return detections
+
+
 class VehicleDetector:
     def __init__(self, model_name: str | None = None):
         self.model_name = model_name or settings.yolo_model
