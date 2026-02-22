@@ -118,6 +118,7 @@ class FrameReader:
 
     def _run(self):
         consecutive_failures = 0
+        frames_read = 0
         last_read = time.time()
         while not self._stopped.is_set():
             # Throttle: wait until next frame slot to avoid reading buffered
@@ -131,6 +132,8 @@ class FrameReader:
                 ret, frame = self._cap.read()
                 last_read = time.time()
                 if not ret:
+                    if frames_read == 0 and consecutive_failures == 0:
+                        logger.warning(f"FrameReader: first cap.read() returned False (stream may not support direct read)")
                     consecutive_failures += 1
                     if consecutive_failures > 30:
                         # Stream truly dead after many failures
@@ -142,6 +145,9 @@ class FrameReader:
                     time.sleep(0.05)
                     continue
                 consecutive_failures = 0
+                frames_read += 1
+                if frames_read == 1:
+                    logger.info(f"FrameReader: first frame OK (fps={1/self._frame_interval:.0f})")
                 # Drop old frames if queue is full (keep latest)
                 if self._queue.full():
                     try:
@@ -149,7 +155,8 @@ class FrameReader:
                     except Empty:
                         pass
                 self._queue.put(frame, timeout=1)
-            except Exception:
+            except Exception as e:
+                logger.error(f"FrameReader: cap.read() exception after {frames_read} frames: {e}")
                 try:
                     self._queue.put(None, timeout=1)
                 except Full:

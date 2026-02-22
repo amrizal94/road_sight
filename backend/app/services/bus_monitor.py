@@ -3,6 +3,7 @@ Bus passenger monitor — independent from parking and traffic monitors.
 Counts passengers boarding (line_in) and alighting (line_out) via a
 door-facing camera. Keys: bus_id (int).
 """
+import asyncio
 import logging
 import threading
 import time
@@ -49,7 +50,17 @@ def _monitor_loop(bus_id: int, capacity: int,
     monitor = bus_monitors.get(bus_id)
     if not monitor:
         return
+    try:
+        _monitor_loop_inner(bus_id, capacity, stream_origin, stream_url, model_name, monitor)
+    except Exception as e:
+        logger.error(f"Bus {bus_id}: UNHANDLED ERROR in monitor loop: {e}", exc_info=True)
+        if monitor:
+            monitor["status"] = "error"
+            monitor["error"] = str(e)
 
+
+def _monitor_loop_inner(bus_id: int, capacity: int,
+                        stream_origin: str, stream_url: str, model_name: str | None, monitor: dict):
     cap = _open_capture(stream_url)
     if not cap.isOpened():
         monitor["status"] = "error"
@@ -68,8 +79,21 @@ def _monitor_loop(bus_id: int, capacity: int,
         logger.info(f"Bus {bus_id}: Stop requested before monitor started")
         return
     monitor["status"] = "running"
-    monitor["_line_y"] = frame_height // 2
-    logger.info(f"Bus {bus_id}: Passenger monitor started (model={model_name or settings.yolo_model})")
+    # frame_height from cap.get() can be 0 before first frame — read one frame to get real size
+    if frame_height == 0:
+        ret, tmp = cap.read()
+        if ret:
+            frame_height = tmp.shape[0]
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # seek back if possible
+    # Line at 35% from top — bus door cameras capture people in upper portion of frame
+    line_y = max(int(frame_height * 0.35), 1)
+    monitor["_line_y"] = line_y
+    tracker.line_y = line_y
+    tracker.line_zone = __import__('supervision').LineZone(
+        start=__import__('supervision').Point(0, line_y),
+        end=__import__('supervision').Point(10000, line_y),
+    )
+    logger.warning(f"Bus {bus_id}: Passenger monitor started (model={model_name or settings.yolo_model}, frame={frame_height}, line_y={line_y})")
 
     reader = FrameReader(cap)
     frame_idx = 0
@@ -130,6 +154,13 @@ def _monitor_loop(bus_id: int, capacity: int,
             line_in, line_out = tracker.get_line_counts()
             passenger_count = max(0, line_in - line_out)
 
+            if frame_idx == 1:
+                logger.warning(f"Bus {bus_id}: FIRST FRAME received, size={frame.shape[:2]}")
+            if raw_dets:
+                logger.warning(f"Bus {bus_id}: PERSON frame={frame_idx} dets={len(raw_dets)} in={line_in} out={line_out}")
+            elif frame_idx <= 3:
+                logger.warning(f"Bus {bus_id}: frame={frame_idx} no detection")
+
             monitor["frame_count"] = frame_idx
             monitor["line_in"] = line_in
             monitor["line_out"] = line_out
@@ -181,7 +212,11 @@ async def start_bus_monitor(bus_id: int, capacity: int,
     if bus_id in bus_monitors and bus_monitors[bus_id]["status"] in ("running", "starting"):
         return {"error": "Already monitoring this bus"}
 
-    stream_url = _resolve_url(stream_origin)
+    loop = asyncio.get_event_loop()
+    try:
+        stream_url = await loop.run_in_executor(None, _resolve_url, stream_origin)
+    except Exception as e:
+        raise RuntimeError(f"Gagal resolve stream URL: {e}") from e
 
     monitor = {
         "bus_id": bus_id,
