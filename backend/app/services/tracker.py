@@ -3,8 +3,17 @@ import supervision as sv
 
 
 class VehicleTracker:
-    def __init__(self, frame_height: int):
-        self.byte_tracker = sv.ByteTrack()
+    def __init__(self, frame_height: int,
+                 track_activation_threshold: float = 0.25,
+                 lost_track_buffer: int = 30,
+                 minimum_matching_threshold: float = 0.8,
+                 frame_rate: int = 30):
+        self.byte_tracker = sv.ByteTrack(
+            track_activation_threshold=track_activation_threshold,
+            lost_track_buffer=lost_track_buffer,
+            minimum_matching_threshold=minimum_matching_threshold,
+            frame_rate=frame_rate,
+        )
         # Counting line at the middle of the frame
         self.line_y = frame_height // 2
         self.line_start = sv.Point(0, self.line_y)
