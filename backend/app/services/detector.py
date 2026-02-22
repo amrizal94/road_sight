@@ -64,10 +64,12 @@ AVAILABLE_MODELS = [
 class PersonDetector:
     """YOLO detector that tracks only the 'person' class — for bus passenger counting."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(self, model_name: str | None = None, confidence: float | None = None):
         self.model_name = model_name or settings.yolo_model
         self.model = YOLO(self.model_name)
-        self.confidence = settings.confidence_threshold
+        # Allow per-instance confidence override (bus monitor uses lower threshold
+        # than the global setting to maintain tracking through low-visibility zones)
+        self.confidence = confidence if confidence is not None else settings.confidence_threshold
 
         # Find person class ID(s) from the model's own names
         self._person_ids: set[int] = set()

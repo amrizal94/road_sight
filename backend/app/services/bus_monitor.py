@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import os
 
 import cv2
+import supervision as sv
 
 from ..config import settings
 from ..database import SessionLocal
@@ -109,7 +110,10 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
     if model_name and not os.path.exists(model_name):
         logger.warning(f"Bus {bus_id}: Model '{model_name}' not found, using default ({settings.yolo_model})")
         model_name = None
-    detector = PersonDetector(model_name)
+    # Use lower confidence than the global setting so detections are maintained
+    # through the door-crossing zone where people are partially occluded / motion-blurred.
+    BUS_CONFIDENCE = 0.15
+    detector = PersonDetector(model_name, confidence=BUS_CONFIDENCE)
     tracker = VehicleTracker(frame_height)
 
     if monitor.get("status") == "stopping":
@@ -117,15 +121,21 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
         reader.stop()
         return
     monitor["status"] = "running"
-    # Line at 35% from top — bus door cameras capture people in upper portion of frame
-    line_y = max(int(frame_height * 0.35), 1)
+    # Line at 25% from top with TOP anchor.
+    # Stationary passengers have bbox-top (head) at y≈0–20 → always above this line.
+    # People walking through the door move their head (bbox-top) past this line → counted.
+    # Using only TOP_LEFT/TOP_RIGHT avoids false triggers from large bboxes that
+    # naturally span a mid-frame line even when the person is standing still.
+    line_y = max(int(frame_height * 0.25), 1)
     monitor["_line_y"] = line_y
     tracker.line_y = line_y
-    tracker.line_zone = __import__('supervision').LineZone(
-        start=__import__('supervision').Point(0, line_y),
-        end=__import__('supervision').Point(10000, line_y),
+    tracker.line_zone = sv.LineZone(
+        start=sv.Point(0, line_y),
+        end=sv.Point(10000, line_y),
+        triggering_anchors=[sv.Position.TOP_LEFT, sv.Position.TOP_RIGHT],
     )
-    logger.warning(f"Bus {bus_id}: Passenger monitor started (model={model_name or settings.yolo_model}, frame={frame_height}, line_y={line_y})")
+    logger.warning(f"Bus {bus_id}: Passenger monitor started (model={model_name or settings.yolo_model}, "
+                   f"conf={BUS_CONFIDENCE}, frame={frame_height}, line_y={line_y}, anchor=TOP)")
 
     frame_idx = 0
     last_frame_time = time.time()
@@ -185,11 +195,7 @@ def _monitor_loop_inner(bus_id: int, capacity: int,
             passenger_count = max(0, line_in - line_out)
 
             if frame_idx == 1:
-                logger.warning(f"Bus {bus_id}: FIRST FRAME received, size={frame.shape[:2]}")
-            if raw_dets:
-                logger.warning(f"Bus {bus_id}: PERSON frame={frame_idx} dets={len(raw_dets)} in={line_in} out={line_out}")
-            elif frame_idx <= 3:
-                logger.warning(f"Bus {bus_id}: frame={frame_idx} no detection")
+                logger.info(f"Bus {bus_id}: First frame received, size={frame.shape[:2]}")
 
             monitor["frame_count"] = frame_idx
             monitor["line_in"] = line_in
