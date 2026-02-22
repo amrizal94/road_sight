@@ -1,12 +1,15 @@
 import asyncio
 import json
+import os
+import shutil
 import subprocess
 import time
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import cv2
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -24,11 +27,19 @@ from ..schemas.bus import (
     PassengerTrend,
     SeatMonitorStatus,
 )
+from ..config import settings
 from ..services.bus_monitor import (
     bus_monitors,
     get_bus_monitor_status,
     start_bus_monitor,
     stop_bus_monitor,
+)
+from ..services.bus_video_test import (
+    bus_video_tests,
+    cleanup_old_tests,
+    cleanup_test,
+    get_test_status,
+    start_bus_video_test,
 )
 from ..services.bus_seat_monitor import (
     _resolve_url,
@@ -210,6 +221,67 @@ class MonitorStartRequest(BaseModel):
     model_name: str | None = None
 
 
+@router.get("/monitor/frame/{bus_id}")
+def monitor_frame(bus_id: int, db: Session = Depends(get_db)):
+    """Single JPEG frame from door stream — for Line Editor background."""
+    bus = db.query(Bus).filter(Bus.id == bus_id).first()
+    if not bus or not bus.stream_url:
+        raise HTTPException(status_code=404, detail="No stream URL configured")
+
+    # Priority 1: cached _raw_frame from a running monitor
+    monitor = bus_monitors.get(bus_id)
+    if monitor and monitor.get("status") in ("running", "starting"):
+        deadline = time.time() + 5.0
+        while time.time() < deadline:
+            if monitor.get("_raw_frame"):
+                return Response(
+                    content=monitor["_raw_frame"],
+                    media_type="image/jpeg",
+                    headers={"Cache-Control": "no-store"},
+                )
+            time.sleep(0.1)
+
+    # Priority 2: ffmpeg single-frame grab
+    from ..services.bus_monitor import _resolve_url as _bus_resolve_url
+    try:
+        stream_url = _bus_resolve_url(bus.stream_url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Gagal resolve stream URL: {e}")
+
+    try:
+        proc = subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error",
+             "-i", stream_url,
+             "-frames:v", "1", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1"],
+            capture_output=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=400, detail="Timeout saat ambil frame dari stream")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="ffmpeg tidak ditemukan di server")
+
+    if proc.returncode != 0 or not proc.stdout:
+        raise HTTPException(status_code=400, detail="Gagal ambil frame dari stream. Cek URL.")
+
+    nparr = np.frombuffer(proc.stdout, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise HTTPException(status_code=400, detail="Gagal decode frame dari stream")
+
+    h, w = frame.shape[:2]
+    if w > 1280:
+        scale = 1280 / w
+        frame = cv2.resize(frame, None, fx=scale, fy=scale)
+
+    _, buf = cv2.imencode(".jpg", frame)
+    return Response(
+        content=buf.tobytes(),
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @router.post("/monitor/start/{bus_id}")
 async def monitor_start(bus_id: int, req: MonitorStartRequest = MonitorStartRequest(),
                         db: Session = Depends(get_db)):
@@ -218,8 +290,15 @@ async def monitor_start(bus_id: int, req: MonitorStartRequest = MonitorStartRequ
         raise HTTPException(status_code=404, detail="Bus not found")
     if not bus.stream_url:
         raise HTTPException(status_code=400, detail="Bus ini belum punya Stream URL kamera pintu. Set via Edit.")
+    # Use 4-point line coords; fall back to legacy line_y_pct for old rows
+    line_y_fallback = bus.line_y_pct or 0.25
+    x1 = bus.line_x1 if bus.line_x1 is not None else 0.0
+    y1 = bus.line_y1 if bus.line_y1 is not None else line_y_fallback
+    x2 = bus.line_x2 if bus.line_x2 is not None else 1.0
+    y2 = bus.line_y2 if bus.line_y2 is not None else line_y_fallback
     try:
-        result = await start_bus_monitor(bus_id, bus.capacity, bus.stream_url, req.model_name)
+        result = await start_bus_monitor(bus_id, bus.capacity, bus.stream_url,
+                                         req.model_name, x1, y1, x2, y2)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if "error" in result:
@@ -495,3 +574,96 @@ def seat_monitor_frame(bus_id: int, db: Session = Depends(get_db)):
         media_type="image/jpeg",
         headers={"Cache-Control": "no-store, no-cache"},
     )
+
+
+# ── Bus Video Test ────────────────────────────────────────────────────────────
+
+@router.post("/video-test/upload/{bus_id}")
+async def video_test_upload(
+    bus_id: int,
+    file: UploadFile = File(...),
+    model_name: str = Form(None),
+    line_x1: float = Form(0.0),
+    line_y1: float = Form(0.25),
+    line_x2: float = Form(1.0),
+    line_y2: float = Form(0.25),
+    db: Session = Depends(get_db),
+):
+    bus = db.query(Bus).filter(Bus.id == bus_id).first()
+    if not bus:
+        raise HTTPException(status_code=404, detail="Bus not found")
+    if not file.filename or not file.filename.lower().endswith(".mp4"):
+        raise HTTPException(status_code=400, detail="Hanya file .mp4 yang didukung")
+
+    cleanup_old_tests()
+
+    job_id = str(uuid4())
+    os.makedirs(settings.upload_dir, exist_ok=True)
+    file_path = os.path.join(settings.upload_dir, f"bus_test_{job_id}.mp4")
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    start_bus_video_test(
+        job_id, bus_id, bus.capacity,
+        file_path, model_name or None,
+        line_x1, line_y1, line_x2, line_y2,
+    )
+    return {"job_id": job_id}
+
+
+@router.get("/video-test/status/{job_id}")
+def video_test_status(job_id: str):
+    status = get_test_status(job_id)
+    if not status:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return status
+
+
+async def _video_test_mjpeg_generator(job_id: str):
+    last_seq = -1
+    loop = asyncio.get_event_loop()
+    while True:
+        test = bus_video_tests.get(job_id)
+        if not test:
+            break
+        # Stop streaming if completed and we've already sent the last frame
+        if test["status"] not in ("processing",) and test.get("_annotated_frame") is None:
+            break
+        event = test.get("_frame_event")
+        if event:
+            await loop.run_in_executor(None, event.wait, 0.5)
+            event.clear()
+        seq = test.get("_frame_seq", 0)
+        if seq == last_seq:
+            if test["status"] == "completed":
+                break
+            await asyncio.sleep(0.03)
+            continue
+        last_seq = seq
+        frame_bytes = test.get("_annotated_frame")
+        if frame_bytes:
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n"
+                + frame_bytes
+                + b"\r\n"
+            )
+        if test["status"] == "completed":
+            break
+
+
+@router.get("/video-test/feed/{job_id}")
+async def video_test_feed(job_id: str):
+    test = bus_video_tests.get(job_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return StreamingResponse(
+        _video_test_mjpeg_generator(job_id),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@router.delete("/video-test/{job_id}")
+def video_test_delete(job_id: str):
+    cleanup_test(job_id)
+    return {"detail": "ok"}

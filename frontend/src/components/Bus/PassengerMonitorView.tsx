@@ -1,40 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BusMonitorStatus,
+  LinePts,
   YoloModel,
   getBusMonitorStatus,
   getModels,
   startBusMonitor,
   stopBusMonitor,
+  updateBus,
 } from "../../services/api";
+import LineEditor from "./LineEditor";
+import VideoTestView from "./VideoTestView";
 
 interface Props {
   busId: number;
   streamUrl: string | null;
   capacity: number;
+  linePts: LinePts;
+  onLinePtsChange: (pts: LinePts) => void;
 }
 
-export default function PassengerMonitorView({ busId, streamUrl, capacity }: Props) {
+export default function PassengerMonitorView({ busId, streamUrl, capacity, linePts, onLinePtsChange }: Props) {
   const [status, setStatus] = useState<BusMonitorStatus | null>(null);
   const [models, setModels] = useState<YoloModel[]>([]);
   const [selectedModel, setSelectedModel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showLineEditor, setShowLineEditor] = useState(false);
+  const [showVideoTest, setShowVideoTest] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   const isRunning = status?.status === "running" || status?.status === "starting";
 
   useEffect(() => {
     getModels().then((r) => {
-      // Filter models unsuitable for person detection:
-      // - VisDrone: trained on aerial vehicle/pedestrian footage, poor at bus door angles
-      // - yolo26: custom vehicle-optimised model, poor person detection (tested empirically)
       const personModels = r.data.filter((m: YoloModel) =>
         !m.id.toLowerCase().includes("visdrone") &&
         !m.id.toLowerCase().includes("yolo26")
       );
       setModels(personModels);
-      // Prefer standard COCO models known to work well for person detection
       const PREFERRED = ["yolov8n.pt", "yolo11n.pt", "yolov8s.pt", "yolo11s.pt"];
       const preferred = personModels.find((m: YoloModel) =>
         m.available && PREFERRED.some((p) => m.id.endsWith(p))
@@ -88,6 +92,11 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
     setLoading(false);
   };
 
+  const isHorizontal = Math.abs(linePts.y2 - linePts.y1) < 0.02;
+  const lineLabel = isHorizontal
+    ? `${Math.round(linePts.y1 * 100)}% dari atas`
+    : "Garis kustom";
+
   const onboard = status?.passenger_count ?? 0;
   const available = Math.max(0, capacity - onboard);
   const pct = capacity > 0 ? Math.round((onboard / capacity) * 100) : 0;
@@ -127,6 +136,21 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
               </option>
             ))}
           </select>
+
+          {/* Counting line indicator + editor */}
+          <div className="flex items-center justify-between text-xs bg-slate-900/50 border border-slate-700 rounded px-3 py-2">
+            <span className="text-slate-400">
+              Garis hitung:{" "}
+              <strong className="text-amber-400">{lineLabel}</strong>
+            </span>
+            <button
+              onClick={() => setShowLineEditor(true)}
+              className="text-amber-400 hover:text-amber-300 transition-colors font-medium"
+            >
+              Atur
+            </button>
+          </div>
+
           <button
             onClick={handleStart}
             disabled={loading}
@@ -134,6 +158,24 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
           >
             {loading ? "Memulai..." : "Start Passenger Counter"}
           </button>
+
+          {showLineEditor && (
+            <LineEditor
+              busId={busId}
+              linePts={linePts}
+              onSave={async (pts) => {
+                try {
+                  await updateBus(busId, {
+                    line_x1: pts.x1, line_y1: pts.y1,
+                    line_x2: pts.x2, line_y2: pts.y2,
+                  });
+                  onLinePtsChange(pts);
+                } catch { /**/ }
+                setShowLineEditor(false);
+              }}
+              onClose={() => setShowLineEditor(false)}
+            />
+          )}
         </div>
       ) : (
         <button
@@ -143,6 +185,31 @@ export default function PassengerMonitorView({ busId, streamUrl, capacity }: Pro
         >
           {loading ? "Menghentikan..." : "Stop Monitor"}
         </button>
+      )}
+
+      {/* Video file test — visible when monitor is not running */}
+      {!isRunning && (
+        <div className="border-t border-slate-800 pt-3">
+          <button
+            onClick={() => setShowVideoTest(!showVideoTest)}
+            className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">
+              {showVideoTest ? "expand_less" : "expand_more"}
+            </span>
+            Test dengan Video File
+          </button>
+          {showVideoTest && (
+            <div className="mt-3">
+              <VideoTestView
+                busId={busId}
+                capacity={capacity}
+                linePts={linePts}
+                modelName={selectedModel}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {error && <p className="text-red-400 text-sm">{error}</p>}

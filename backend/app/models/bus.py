@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text, func
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text, func
 
 from ..database import Base
 
@@ -13,6 +13,11 @@ class Bus(Base):
     route = Column(String, nullable=True)               # e.g. "Blok M - Kota"
     stream_url = Column(String, nullable=True)          # Kamera pintu (passenger counting)
     overhead_stream_url = Column(String, nullable=True) # Kamera overhead interior (seat detection)
+    line_y_pct = Column(Float, default=0.25, server_default="0.25")  # legacy, kept for compat
+    line_x1 = Column(Float, default=0.0, server_default="0.0")
+    line_y1 = Column(Float, default=0.25, server_default="0.25")
+    line_x2 = Column(Float, default=1.0, server_default="1.0")
+    line_y2 = Column(Float, default=0.25, server_default="0.25")
     status = Column(String, default="active")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

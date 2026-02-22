@@ -11,6 +11,11 @@ class BusCreate(BaseModel):
     route: str | None = None
     stream_url: str | None = None
     overhead_stream_url: str | None = None
+    line_y_pct: float = 0.25   # legacy
+    line_x1: float = 0.0
+    line_y1: float = 0.25
+    line_x2: float = 1.0
+    line_y2: float = 0.25
     status: str = "active"
 
 
@@ -21,6 +26,11 @@ class BusUpdate(BaseModel):
     route: str | None = None
     stream_url: str | None = None
     overhead_stream_url: str | None = None
+    line_y_pct: float | None = None   # legacy
+    line_x1: float | None = None
+    line_y1: float | None = None
+    line_x2: float | None = None
+    line_y2: float | None = None
     status: str | None = None
 
 
@@ -32,6 +42,11 @@ class BusOut(BaseModel):
     route: str | None = None
     stream_url: str | None = None
     overhead_stream_url: str | None = None
+    line_y_pct: float = 0.25   # legacy
+    line_x1: float = 0.0
+    line_y1: float = 0.25
+    line_x2: float = 1.0
+    line_y2: float = 0.25
     status: str
     created_at: datetime | None = None
 

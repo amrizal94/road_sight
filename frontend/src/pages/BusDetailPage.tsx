@@ -17,6 +17,7 @@ import {
   Bus,
   BusSeat,
   BusStatus,
+  LinePts,
   PassengerTrend,
   deleteBus,
   getBus,
@@ -38,6 +39,7 @@ export default function BusDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [tab, setTab] = useState<BusTab>("passenger");
+  const [linePts, setLinePts] = useState<LinePts>({ x1: 0, y1: 0.25, x2: 1, y2: 0.25 });
 
   const fetchAll = useCallback(async () => {
     try {
@@ -49,6 +51,14 @@ export default function BusDetailPage() {
       setBus(busRes.data);
       setStatus(statusRes.data);
       setTrends(trendRes.data);
+      const b = busRes.data;
+      const yFallback = b.line_y_pct ?? 0.25;
+      setLinePts({
+        x1: b.line_x1 ?? 0,
+        y1: b.line_y1 ?? yFallback,
+        x2: b.line_x2 ?? 1,
+        y2: b.line_y2 ?? yFallback,
+      });
     } catch { /**/ }
   }, [busId]);
 
@@ -210,6 +220,8 @@ export default function BusDetailPage() {
               busId={busId}
               streamUrl={bus.stream_url}
               capacity={bus.capacity}
+              linePts={linePts}
+              onLinePtsChange={setLinePts}
             />
           )}
           {tab === "seat-editor" && (

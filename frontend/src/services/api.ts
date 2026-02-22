@@ -271,6 +271,11 @@ export interface Bus {
   route: string | null;
   stream_url: string | null;
   overhead_stream_url: string | null;
+  line_y_pct: number;   // legacy
+  line_x1: number;
+  line_y1: number;
+  line_x2: number;
+  line_y2: number;
   status: string;
   created_at: string | null;
 }
@@ -282,6 +287,11 @@ export interface BusCreate {
   route?: string | null;
   stream_url?: string | null;
   overhead_stream_url?: string | null;
+  line_y_pct?: number;   // legacy
+  line_x1?: number;
+  line_y1?: number;
+  line_x2?: number;
+  line_y2?: number;
   status?: string;
 }
 
@@ -363,6 +373,9 @@ export const startBusMonitor = (id: number, modelName?: string) =>
 export const stopBusMonitor = (id: number) => api.post(`/bus/monitor/stop/${id}`);
 export const getBusMonitorStatus = (id: number) =>
   api.get<BusMonitorStatus>(`/bus/monitor/status/${id}`);
+/** Returns a URL suitable for use as <img src> — not an axios call. */
+export const getBusMonitorFrameUrl = (busId: number) =>
+  `/api/bus/monitor/frame/${busId}?t=${Date.now()}`;
 
 export const getBusSeats = (busId: number) => api.get<BusSeat[]>(`/bus/seats/${busId}`);
 export const createBusSeat = (busId: number, data: { label: string; polygon: number[][] }) =>
@@ -378,3 +391,48 @@ export const recaptureSeatReference = (busId: number) =>
   api.post(`/bus/seat-monitor/recapture/${busId}`);
 export const getSeatMonitorStatus = (busId: number) =>
   api.get<SeatMonitorStatus>(`/bus/seat-monitor/status/${busId}`);
+
+// ── Bus Video Test ──────────────────────────────────────────────────────────
+
+export interface BusVideoTestStatus {
+  job_id: string;
+  bus_id: number;
+  status: "processing" | "completed" | "error" | "stopping";
+  progress_pct: number;
+  frame_count: number;
+  total_frames: number;
+  line_in: number;
+  line_out: number;
+  passenger_count: number;
+  error: string | null;
+}
+
+export interface LinePts {
+  x1: number; y1: number;
+  x2: number; y2: number;
+}
+
+export const uploadBusTestVideo = (
+  busId: number,
+  file: File,
+  modelName: string,
+  linePts: LinePts,
+) => {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("model_name", modelName);
+  form.append("line_x1", String(linePts.x1));
+  form.append("line_y1", String(linePts.y1));
+  form.append("line_x2", String(linePts.x2));
+  form.append("line_y2", String(linePts.y2));
+  return api.post<{ job_id: string }>(`/bus/video-test/upload/${busId}`, form);
+};
+
+export const getBusTestStatus = (jobId: string) =>
+  api.get<BusVideoTestStatus>(`/bus/video-test/status/${jobId}`);
+
+export const deleteBusTest = (jobId: string) =>
+  api.delete(`/bus/video-test/${jobId}`);
+
+export const getBusTestFeedUrl = (jobId: string) =>
+  `/api/bus/video-test/feed/${jobId}`;

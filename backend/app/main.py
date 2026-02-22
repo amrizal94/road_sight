@@ -36,6 +36,21 @@ def on_startup():
             conn.execute(text(
                 "ALTER TABLE parking_lots ADD COLUMN IF NOT EXISTS overhead_stream_url VARCHAR"
             ))
+            conn.execute(text(
+                "ALTER TABLE buses ADD COLUMN IF NOT EXISTS line_y_pct FLOAT DEFAULT 0.25"
+            ))
+            conn.execute(text(
+                "ALTER TABLE buses ADD COLUMN IF NOT EXISTS line_x1 FLOAT DEFAULT 0.0"
+            ))
+            conn.execute(text(
+                "ALTER TABLE buses ADD COLUMN IF NOT EXISTS line_y1 FLOAT DEFAULT 0.25"
+            ))
+            conn.execute(text(
+                "ALTER TABLE buses ADD COLUMN IF NOT EXISTS line_x2 FLOAT DEFAULT 1.0"
+            ))
+            conn.execute(text(
+                "ALTER TABLE buses ADD COLUMN IF NOT EXISTS line_y2 FLOAT DEFAULT 0.25"
+            ))
             conn.commit()
         logger.info(f"Database OK. Timezone: {settings.timezone}")
     except Exception as e:
