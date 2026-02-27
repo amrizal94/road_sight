@@ -96,7 +96,7 @@ def get_status(job_id: str):
 class LiveMonitorRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
     camera_id: int
-    youtube_url: str
+    stream_url: str
     model_name: str | None = None
 
 
@@ -112,7 +112,7 @@ def list_models():
 @router.post("/live/start")
 async def live_start(req: LiveMonitorRequest):
     try:
-        result = await start_monitor(req.camera_id, req.youtube_url, req.model_name)
+        result = await start_monitor(req.camera_id, req.stream_url, req.model_name)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if "error" in result:

@@ -180,7 +180,7 @@ export default function LiveMonitor({ cameraId }: Props) {
         <div className="space-y-2">
           <input
             type="text"
-            placeholder="YouTube Live URL (https://youtube.com/watch?v=...)"
+            placeholder="Stream URL — RTSP (rtsp://...) atau YouTube (https://youtube.com/watch?v=...)"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="bg-card-dark-alt border border-slate-700 text-white rounded px-3 py-2 w-full text-sm placeholder-slate-500 focus:border-primary focus:outline-none"

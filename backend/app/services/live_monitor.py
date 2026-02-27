@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import threading
 import logging
@@ -32,6 +33,9 @@ BBOX_COLORS = {
     "bicycle": (255, 0, 200),
     "person": (0, 255, 128),
 }
+
+# Lock to serialise OPENCV_FFMPEG_CAPTURE_OPTIONS mutations (global env var).
+_rtsp_cap_lock = threading.Lock()
 
 MAX_RECONNECT_ATTEMPTS = 10
 RECONNECT_DELAY_BASE = 3  # seconds (doubles each attempt: 3, 6, 12, 24, ...)
@@ -91,17 +95,29 @@ def _get_stream_url(youtube_url: str) -> str:
     return result.stdout.strip().split("\n")[0]
 
 
+def _resolve_url(url: str) -> str:
+    """Use yt-dlp for YouTube URLs only; return RTSP/HTTP direct streams unchanged."""
+    if "youtube" in url or "youtu.be" in url:
+        return _get_stream_url(url)
+    return url
+
+
 def _open_capture(stream_url: str) -> cv2.VideoCapture:
     """Open VideoCapture with optimized settings for live streams."""
     import os
     os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "error"
 
-    cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
-    # Only set buffer size 1 for RTSP (low-latency live stream).
-    # For HTTP/YouTube CDN MP4/HLS, leave default — setting BUFFERSIZE
-    # on FFMPEG backend disrupts container parsing and drops frames.
     if stream_url.startswith("rtsp://"):
+        # Force TCP transport for internet RTSP cameras (prevents UDP packet loss on WAN).
+        # OPENCV_FFMPEG_CAPTURE_OPTIONS is a global env var — protect with a lock so
+        # concurrent monitor starts don't clobber each other's setting.
+        with _rtsp_cap_lock:
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+            cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
+            os.environ.pop("OPENCV_FFMPEG_CAPTURE_OPTIONS", None)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    else:
+        cap = cv2.VideoCapture(stream_url, cv2.CAP_FFMPEG)
     return cap
 
 
@@ -282,7 +298,7 @@ class FFmpegReader:
             self._proc.terminate()
 
 
-def _monitor_loop(camera_id: int, youtube_url: str, stream_url: str, ws_callback,
+def _monitor_loop(camera_id: int, stream_origin: str, stream_url: str, ws_callback,
                    model_name: str | None = None):
     """Single-loop design: read frame → YOLO detect → draw → publish.
     Every frame is processed. FPS = YOLO speed. No frame skipping."""
@@ -345,9 +361,9 @@ def _monitor_loop(camera_id: int, youtube_url: str, stream_url: str, ws_callback
                     break
 
                 try:
-                    stream_url = _get_stream_url(youtube_url)
+                    stream_url = _resolve_url(stream_origin)
                 except Exception as e:
-                    logger.error(f"Camera {camera_id}: yt-dlp failed: {e}")
+                    logger.error(f"Camera {camera_id}: URL resolve failed: {e}")
                     continue
 
                 cap = _open_capture(stream_url)
@@ -464,15 +480,19 @@ def _monitor_loop(camera_id: int, youtube_url: str, stream_url: str, ws_callback
         logger.info(f"Camera {camera_id}: Live monitoring stopped")
 
 
-async def start_monitor(camera_id: int, youtube_url: str, model_name: str | None = None) -> dict:
-    if camera_id in active_monitors and active_monitors[camera_id]["status"] == "running":
+async def start_monitor(camera_id: int, stream_url: str, model_name: str | None = None) -> dict:
+    if camera_id in active_monitors and active_monitors[camera_id]["status"] in ("running", "starting"):
         return {"error": "Already monitoring this camera"}
 
-    stream_url = _get_stream_url(youtube_url)
+    loop = asyncio.get_running_loop()
+    try:
+        resolved_url = await loop.run_in_executor(None, _resolve_url, stream_url)
+    except Exception as e:
+        raise RuntimeError(f"Gagal resolve stream URL: {e}") from e
 
     monitor = {
         "camera_id": camera_id,
-        "youtube_url": youtube_url,
+        "stream_url": stream_url,
         "model_name": model_name or settings.yolo_model,
         "status": "starting",
         "frame_count": 0,
@@ -494,7 +514,7 @@ async def start_monitor(camera_id: int, youtube_url: str, model_name: str | None
 
     thread = threading.Thread(
         target=_monitor_loop,
-        args=(camera_id, youtube_url, stream_url, None, model_name),
+        args=(camera_id, stream_url, resolved_url, None, model_name),
         daemon=True,
     )
     thread.start()
@@ -549,7 +569,7 @@ def get_monitor_status(camera_id: int) -> dict | None:
         return None
     return {
         "camera_id": monitor["camera_id"],
-        "youtube_url": monitor.get("youtube_url"),
+        "stream_url": monitor.get("stream_url"),
         "model_name": monitor.get("model_name", settings.yolo_model),
         "status": monitor["status"],
         "frame_count": monitor["frame_count"],

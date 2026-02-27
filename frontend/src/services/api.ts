@@ -90,7 +90,7 @@ export const getJobStatus = (jobId: string) =>
 // Live monitoring
 export interface LiveStatus {
   camera_id: number;
-  youtube_url: string;
+  stream_url: string;
   model_name: string;
   status: string;
   frame_count: number;
@@ -110,8 +110,8 @@ export interface YoloModel {
 
 export const getModels = () => api.get<YoloModel[]>("/stream/models");
 
-export const startLiveMonitor = (cameraId: number, youtubeUrl: string, modelName?: string) =>
-  api.post("/stream/live/start", { camera_id: cameraId, youtube_url: youtubeUrl, model_name: modelName });
+export const startLiveMonitor = (cameraId: number, streamUrl: string, modelName?: string) =>
+  api.post("/stream/live/start", { camera_id: cameraId, stream_url: streamUrl, model_name: modelName });
 
 export const stopLiveMonitor = (cameraId: number) =>
   api.post(`/stream/live/stop/${cameraId}`);
