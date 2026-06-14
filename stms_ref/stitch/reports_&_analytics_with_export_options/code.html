@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CCTV Analytics Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d6cf2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #223249;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 bg-[#101823] border-r border-slate-800 flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">videocam</span>
+</div>
+<div>
+<h1 class="text-white text-base font-bold leading-tight">CCTV Admin</h1>
+<p class="text-[#90a9cb] text-xs font-medium">Surveillance Ops</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">live_tv</span>
+<span class="text-sm font-medium">Live Feed</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary text-white rounded-lg shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-sm font-medium">Events</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-800">
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white py-2.5 rounded-lg text-sm font-bold transition-all">
+<span class="material-symbols-outlined text-sm">download</span>
+                    Export PDF
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-20 bg-[#101823] border-b border-slate-800 flex items-center justify-between px-8 shrink-0">
+<div class="flex flex-col">
+<div class="flex items-center gap-2 text-xs text-[#90a9cb] mb-1">
+<span>Analytics</span>
+<span class="material-symbols-outlined text-[10px]">chevron_right</span>
+<span class="text-white">Reports &amp; Analytics</span>
+</div>
+<h2 class="text-2xl font-black text-white leading-tight">Reports &amp; Analytics</h2>
+</div>
+<div class="flex items-center gap-4">
+<!-- Search -->
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#90a9cb] text-xl">search</span>
+<input class="w-full bg-[#223249] border-none rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder:text-[#90a9cb] focus:ring-1 focus:ring-primary" placeholder="Search regions..." type="text"/>
+</div>
+<!-- Date Picker Simulation -->
+<button class="flex items-center gap-2 bg-[#223249] hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+<span class="material-symbols-outlined text-lg">calendar_today</span>
+<span>Oct 12, 2023 - Oct 13, 2023</span>
+</button>
+<!-- Filter -->
+<button class="flex items-center gap-2 bg-[#223249] hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700">
+<span class="material-symbols-outlined text-lg">description</span>
+<span>Download CSV</span>
+</button><button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                        Filter
+                    </button>
+</div>
+</header>
+<!-- Dashboard Content Scrollable -->
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-[#1b2533] p-6 rounded-xl border border-slate-800 flex items-center justify-between">
+<div>
+<p class="text-[#90a9cb] text-sm font-medium mb-1">Total Vehicles</p>
+<h3 class="text-3xl font-black text-white tabular-nums">42,891</h3>
+<div class="flex items-center gap-1 text-emerald-400 text-xs mt-2 font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +12.5% from yesterday
+                            </div>
+</div>
+<div class="size-14 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">directions_car</span>
+</div>
+</div>
+<div class="bg-[#1b2533] p-6 rounded-xl border border-slate-800 flex items-center justify-between">
+<div>
+<p class="text-[#90a9cb] text-sm font-medium mb-1">Peak Hour Traffic</p>
+<h3 class="text-3xl font-black text-white tabular-nums">08:00 - 09:00</h3>
+<div class="flex items-center gap-1 text-slate-400 text-xs mt-2 font-bold">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                                AM Period Peak
+                            </div>
+</div>
+<div class="size-14 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined text-3xl">bolt</span>
+</div>
+</div>
+<div class="bg-[#1b2533] p-6 rounded-xl border border-slate-800 flex items-center justify-between">
+<div>
+<p class="text-[#90a9cb] text-sm font-medium mb-1">Most Active Region</p>
+<h3 class="text-3xl font-black text-white">North Intersection</h3>
+<div class="flex items-center gap-1 text-slate-400 text-xs mt-2 font-bold">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                                Sector 4 - Zone A
+                            </div>
+</div>
+<div class="size-14 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-500">
+<span class="material-symbols-outlined text-3xl">map</span>
+</div>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Vehicle Breakdown Donut -->
+<div class="bg-[#1b2533] p-6 rounded-xl border border-slate-800 col-span-1">
+<div class="flex items-center justify-between mb-6">
+<h4 class="text-lg font-bold text-white">Vehicle Breakdown</h4>
+<button class="text-[#90a9cb] hover:text-white transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="relative h-64 flex items-center justify-center mb-6">
+<!-- Simulated Donut Chart using SVG -->
+<svg class="w-48 h-48 transform -rotate-90">
+<circle cx="96" cy="96" fill="transparent" r="70" stroke="#223249" stroke-width="24"></circle>
+<circle cx="96" cy="96" fill="transparent" r="70" stroke="#0d6cf2" stroke-dasharray="440" stroke-dashoffset="110" stroke-width="24"></circle>
+<circle cx="96" cy="96" fill="transparent" r="70" stroke="#8b5cf6" stroke-dasharray="440" stroke-dashoffset="330" stroke-width="24"></circle>
+<circle cx="96" cy="96" fill="transparent" r="70" stroke="#f59e0b" stroke-dasharray="440" stroke-dashoffset="400" stroke-width="24"></circle>
+<circle cx="96" cy="96" fill="transparent" r="70" stroke="#ec4899" stroke-dasharray="440" stroke-dashoffset="430" stroke-width="24"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-2xl font-black text-white">100%</span>
+<span class="text-xs text-[#90a9cb] uppercase tracking-wider font-bold">Total Share</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="text-xs text-[#90a9cb] font-medium">Cars (75%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-purple-500"></div>
+<span class="text-xs text-[#90a9cb] font-medium">Motorbikes (15%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-orange-500"></div>
+<span class="text-xs text-[#90a9cb] font-medium">Trucks (7%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-pink-500"></div>
+<span class="text-xs text-[#90a9cb] font-medium">Buses (3%)</span>
+</div>
+</div>
+</div>
+<!-- Volume Trend Line Chart -->
+<div class="bg-[#1b2533] p-6 rounded-xl border border-slate-800 col-span-1 lg:col-span-2">
+<div class="flex items-center justify-between mb-6">
+<div>
+<h4 class="text-lg font-bold text-white">Vehicle Volume Trend (24h)</h4>
+<p class="text-xs text-[#90a9cb]">Traffic density per hour across all active regions</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1 text-xs font-bold text-white bg-primary rounded">Hourly</button>
+<button class="px-3 py-1 text-xs font-bold text-slate-400 hover:text-white transition-colors">Daily</button>
+</div>
+</div>
+<div class="h-64 relative mt-4">
+<!-- Simplified Chart Axes -->
+<div class="absolute left-0 top-0 bottom-8 w-px bg-slate-800"></div>
+<div class="absolute left-0 bottom-8 right-0 h-px bg-slate-800"></div>
+<!-- Simulated Grid Lines -->
+<div class="absolute left-0 right-0 top-0 h-px bg-slate-800/30"></div>
+<div class="absolute left-0 right-0 top-1/4 h-px bg-slate-800/30"></div>
+<div class="absolute left-0 right-0 top-2/4 h-px bg-slate-800/30"></div>
+<div class="absolute left-0 right-0 top-3/4 h-px bg-slate-800/30"></div>
+<!-- Simulated Line Chart Path -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<defs>
+<lineargradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#0d6cf2" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#0d6cf2" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,80 Q10,75 20,40 T40,20 T60,60 T80,30 T100,50 L100,100 L0,100 Z" fill="url(#chartGradient)"></path>
+<path d="M0,80 Q10,75 20,40 T40,20 T60,60 T80,30 T100,50" fill="none" stroke="#0d6cf2" stroke-width="2"></path>
+<!-- Data points -->
+<circle cx="20" cy="40" fill="#0d6cf2" r="1.5"></circle>
+<circle cx="40" cy="20" fill="#0d6cf2" r="1.5"></circle>
+<circle cx="60" cy="60" fill="#0d6cf2" r="1.5"></circle>
+<circle cx="80" cy="30" fill="#0d6cf2" r="1.5"></circle>
+</svg>
+<!-- X Axis Labels -->
+<div class="absolute left-0 right-0 bottom-0 flex justify-between text-[10px] text-[#90a9cb] font-bold px-1">
+<span>00:00</span>
+<span>04:00</span>
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+<span>20:00</span>
+<span>23:59</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Activity Logs Table -->
+<div class="bg-[#1b2533] rounded-xl border border-slate-800 overflow-hidden">
+<div class="p-6 border-b border-slate-800 flex items-center justify-between">
+<h4 class="text-lg font-bold text-white">Regional Activity Logs</h4>
+<button class="text-primary text-sm font-bold hover:underline">View All Regions</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-[#101823] text-[#90a9cb] text-xs font-bold uppercase tracking-wider">
+<tr>
+<th class="px-6 py-4">Location</th>
+<th class="px-6 py-4">Primary Type</th>
+<th class="px-6 py-4">Total Count</th>
+<th class="px-6 py-4">Avg Speed</th>
+<th class="px-6 py-4">Trend</th>
+<th class="px-6 py-4 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-800">
+<tr class="hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-slate-700 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-white">map</span>
+</div>
+<div>
+<div class="text-sm font-bold text-white">North Intersection</div>
+<div class="text-[10px] text-[#90a9cb]">Cam ID: NI-204</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-primary/20 text-primary text-[10px] font-bold rounded uppercase">Sedan/SUV</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">12,402</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">42 km/h</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-emerald-400">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-xs font-bold">+8%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">visibility</span></button>
+</td>
+</tr>
+<tr class="hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-slate-700 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-white">map</span>
+</div>
+<div>
+<div class="text-sm font-bold text-white">East Expressway Exit</div>
+<div class="text-[10px] text-[#90a9cb]">Cam ID: EE-512</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-orange-500/20 text-orange-500 text-[10px] font-bold rounded uppercase">Heavy Truck</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">8,211</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">68 km/h</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-rose-400">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span class="text-xs font-bold">-3%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">visibility</span></button>
+</td>
+</tr>
+<tr class="hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-slate-700 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm text-white">map</span>
+</div>
+<div>
+<div class="text-sm font-bold text-white">Central Plaza Hub</div>
+<div class="text-[10px] text-[#90a9cb]">Cam ID: CP-098</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-purple-500/20 text-purple-500 text-[10px] font-bold rounded uppercase">Two-Wheeler</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">15,670</td>
+<td class="px-6 py-4 text-sm font-medium text-white tabular-nums">24 km/h</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-emerald-400">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-xs font-bold">+15%</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-white"><span class="material-symbols-outlined">visibility</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

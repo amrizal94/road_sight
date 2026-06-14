@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Surveillance Center | CCTV Monitor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d6cf2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen flex-col">
+<!-- TopNavBar -->
+<header class="flex h-16 w-full items-center justify-between border-b border-primary/20 bg-background-light dark:bg-background-dark px-6 z-20">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">security</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">CCTV Monitor</h2>
+</div>
+<div class="hidden md:flex items-center gap-6 border-l border-primary/20 pl-8">
+<div class="flex items-center gap-2 text-sm font-medium text-emerald-500">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                        System Healthy
+                    </div>
+<div class="flex items-center gap-2 text-sm font-medium text-slate-400">
+<span class="material-symbols-outlined text-sm">database</span>
+                        Storage: 85%
+                    </div>
+<div class="flex items-center gap-2 text-sm font-medium text-slate-400">
+<span class="material-symbols-outlined text-sm">wifi</span>
+                        120Mbps
+                    </div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/20">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<span class="text-sm font-semibold text-primary">14:45:22</span>
+</div>
+<button class="relative p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full border-2 border-background-dark"></span>
+</button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-primary/20">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold leading-none">Alex Rivera</p>
+<p class="text-xs text-slate-500 mt-1">Operator ID: 4920</p>
+</div>
+<div class="size-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center overflow-hidden">
+<img alt="User profile" class="size-full object-cover" data-alt="Professional male security operator profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyGyJzSa4A1oDdT6iCtOunYcuhq34LSAeeESb29xWFKjvGY4-XAuJCUOS8f8TvoI-AGjs6b_rxNsiu1KhbilzkDZYFIuhkKz8GQVnAF7DHWcGFlTc2md9lCAzvNX7e8iPQNSxAN995xHFPQutaCZJ0bTK4o2QrIypLeVwcVaEj6VsYjJm5hzAZseHjsFliC2i00Sk_kS2WLS4m_QaiIGh5TnOfmjuLrjVmye9kDkcZawlgpxGEJyWh6wim9X_K2L881D3UE2Ay4PRK"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-primary/10 bg-background-light dark:bg-background-dark/50 flex flex-col justify-between py-6">
+<div class="px-4 space-y-8">
+<div class="space-y-1">
+<p class="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Main Menu</p>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined active-icon">videocam</span>
+<span class="text-sm font-medium">Surveillance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-sm font-medium">Archive</span>
+</a>
+</div>
+<div class="space-y-1">
+<p class="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">System</p>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-primary/5 hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined">admin_panel_settings</span>
+<span class="text-sm font-medium">Administration</span>
+</a>
+</div>
+</div>
+<div class="px-4">
+<div class="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-slate-400">Cloud Sync</span>
+<span class="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
+</div>
+<div class="w-full bg-primary/20 rounded-full h-1.5 mb-2">
+<div class="bg-primary h-1.5 rounded-full w-[65%]"></div>
+</div>
+<p class="text-[10px] text-slate-500">Last synced 2 mins ago</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col bg-background-light dark:bg-[#0b0f1a] overflow-hidden">
+<!-- Grid Controls -->
+<div class="flex items-center justify-between px-6 py-4 bg-background-light dark:bg-background-dark border-b border-primary/10">
+<div class="flex items-center gap-4">
+<h1 class="text-xl font-bold">Surveillance Grid</h1>
+<div class="flex bg-primary/10 p-1 rounded-lg">
+<button class="px-3 py-1 text-xs font-bold text-primary bg-background-light dark:bg-background-dark rounded shadow-sm">2x2</button>
+<button class="px-3 py-1 text-xs font-bold text-slate-400 hover:text-primary">3x3</button>
+<button class="px-3 py-1 text-xs font-bold text-slate-400 hover:text-primary">4x4</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+<input class="w-full bg-primary/5 border-primary/20 focus:ring-primary focus:border-primary rounded-lg pl-10 text-sm py-2" placeholder="Search cameras..." type="text"/>
+</div>
+<div class="h-8 w-px bg-primary/20 mx-2"></div>
+<button class="p-2 text-slate-400 hover:bg-primary/10 hover:text-primary rounded-lg transition-all" title="Full Screen">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+<button class="p-2 text-slate-400 hover:bg-primary/10 hover:text-primary rounded-lg transition-all" title="Record All">
+<span class="material-symbols-outlined">fiber_manual_record</span>
+</button>
+<button class="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span>
+                            Add Feed
+                        </button>
+</div>
+</div>
+<!-- Surveillance Grid (2x2 Layout example) -->
+<div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-primary/20">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-[800px]">
+<!-- Camera Feed 1 -->
+<div class="group relative bg-background-dark rounded-xl border border-primary/20 overflow-hidden aspect-video shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="CCTV view of busy downtown street with cars and pedestrians" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD1wv_HDSozyWe8l_mbGpgqb2jj4G4xgImi7pY7MB84SFseVWIz3C1py5alslPFbuusflWFoNvRfUOKqkxjBYIEyo1VwbQqe8ZV34zZ_tnv1EuVNxFooYnmQExHDil-jTWLpa6ifHvIJGd5nGTME1oZnl6tay7IxZ54_jcznK8EZwvR4Lk2DLx3F_UJHG6RP4gi3czM5f0RRA_5wD_jQT6wrV5ddG3XEuKtebP1gFVxu6s7oZpdO_1_qzh5YfP5Hr-g4AXOhdg9d_Uj')">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60"></div>
+</div>
+<!-- Overlay Info -->
+<div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="flex flex-col">
+<span class="bg-primary/90 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-1">CAM-01</span>
+<h3 class="text-white font-bold text-lg drop-shadow-md">Downtown - 5th Ave</h3>
+</div>
+<div class="flex gap-2">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-red-600 transition-colors">
+<span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+</button>
+</div>
+</div>
+<!-- Static Info (Always visible) -->
+<div class="absolute top-4 left-4 flex items-center gap-2 opacity-100 group-hover:opacity-0 transition-opacity">
+<div class="bg-emerald-500 size-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+<span class="text-white text-xs font-bold tracking-wider">LIVE</span>
+</div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<span class="text-slate-300 text-[10px] font-mono bg-black/40 px-2 py-1 rounded backdrop-blur-sm">2024-05-20 14:45:22.12</span>
+<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">zoom_in</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">volume_up</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Object Detection Overlays -->
+<div class="absolute inset-0 pointer-events-none">
+<!-- Status Indicator -->
+<div class="absolute top-4 right-4 bg-primary/20 backdrop-blur-md border border-primary/40 px-2 py-1 rounded-md flex items-center gap-1.5 opacity-100 group-hover:opacity-0 transition-opacity">
+<span class="size-1.5 bg-primary rounded-full animate-pulse"></span>
+<span class="text-[9px] font-bold text-primary tracking-wider uppercase">Object Detection: ACTIVE</span>
+</div>
+<!-- Bounding Box: Car -->
+<div class="absolute border-2 border-primary/60 rounded-sm" style="top: 45%; left: 48%; width: 12%; height: 10%;">
+<div class="absolute -top-5 left-0 bg-primary/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-t-sm whitespace-nowrap shadow-sm">
+            Car 98%
+        </div>
+</div>
+<!-- Bounding Box: Car 2 -->
+<div class="absolute border-2 border-primary/40 rounded-sm" style="top: 52%; left: 32%; width: 10%; height: 8%;">
+<div class="absolute -top-5 left-0 bg-primary/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-t-sm whitespace-nowrap">
+            Car 94%
+        </div>
+</div>
+</div></div>
+<!-- Camera Feed 2 -->
+<div class="group relative bg-background-dark rounded-xl border border-primary/20 overflow-hidden aspect-video shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Security camera view of a modern building lobby with glass walls" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBBNeOTxPSW0APPSNjQejkijva63jV8-k2P3dBOCwCyDDctGoCg45LAqIge11BWbtlSLEuHwwQyEOC6X2vkXQsih0fZ2rnH1uHro6yB7fWvuQ2jrr7aNjStJBA9nW2DwT_QRcrBuI_nYpha9-tiucFpat2B86txhT0Hag1DQY320AfX3KY8wESsUfAUysAm3t4iwMRlxbByDIrL7SlWUTq5HWO3KuAXFFMpsFdrWI-67cVx14pM37Bo7edp223NPIAKLTR9K_SmUP_k')">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60"></div>
+</div>
+<div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="flex flex-col">
+<span class="bg-primary/90 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-1">CAM-02</span>
+<h3 class="text-white font-bold text-lg drop-shadow-md">North Station - Entrance</h3>
+</div>
+<div class="flex gap-2">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-red-600 transition-colors">
+<span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+</button>
+</div>
+</div>
+<div class="absolute top-4 left-4 flex items-center gap-2 opacity-100 group-hover:opacity-0 transition-opacity">
+<div class="bg-emerald-500 size-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+<span class="text-white text-xs font-bold tracking-wider">LIVE</span>
+</div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<span class="text-slate-300 text-[10px] font-mono bg-black/40 px-2 py-1 rounded backdrop-blur-sm">2024-05-20 14:45:22.09</span>
+<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">zoom_in</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">volume_up</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Object Detection Overlays -->
+<div class="absolute inset-0 pointer-events-none">
+<!-- Status Indicator -->
+<div class="absolute top-4 right-4 bg-emerald-500/10 backdrop-blur-md border border-emerald-500/30 px-2 py-1 rounded-md flex items-center gap-1.5 opacity-100 group-hover:opacity-0 transition-opacity">
+<span class="size-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+<span class="text-[9px] font-bold text-emerald-500 tracking-wider uppercase">Object Detection: ACTIVE</span>
+</div>
+<!-- Bounding Box: Person -->
+<div class="absolute border-2 border-emerald-500/50 rounded-sm" style="top: 40%; left: 75%; width: 8%; height: 25%;">
+<div class="absolute -top-5 left-0 bg-emerald-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-t-sm whitespace-nowrap shadow-sm">
+            Person 92%
+        </div>
+</div>
+</div></div>
+<!-- Camera Feed 3 -->
+<div class="group relative bg-background-dark rounded-xl border border-primary/20 overflow-hidden aspect-video shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="CCTV view of an empty office main lobby with reception desk" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAWCHuWxBLu89eUna34sPxiu4oqsNzwGNUMjimDZPoXO9FWCn_987loXtil-7GfKiCjhjkOOOGzSUhNDcsm5RniFDk-GS01vAW3KaBqQA7Y_3A6iIafGjCT5nUqnASijTbuxe9Cj9tIM5wSX-9UB9KMyZcI6wruMTqFzHcSkwz3aFCyBxHRxx4UcPmuNB5PHdYdGX3nCKo97-t5v1-nmNOkwjGAuUGm2yiRfFWtR836g3nNdrLYVzRpLHVrV18ss6AOBb_waToXyMvI')">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60"></div>
+</div>
+<div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="flex flex-col">
+<span class="bg-primary/90 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-1">CAM-03</span>
+<h3 class="text-white font-bold text-lg drop-shadow-md">Main Lobby</h3>
+</div>
+<div class="flex gap-2">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-red-600 transition-colors">
+<span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+</button>
+</div>
+</div>
+<div class="absolute top-4 left-4 flex items-center gap-2 opacity-100 group-hover:opacity-0 transition-opacity">
+<div class="bg-emerald-500 size-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+<span class="text-white text-xs font-bold tracking-wider">LIVE</span>
+</div>
+<div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+<span class="text-slate-300 text-[10px] font-mono bg-black/40 px-2 py-1 rounded backdrop-blur-sm">2024-05-20 14:45:22.05</span>
+<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">zoom_in</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">volume_up</span>
+</button>
+<button class="bg-black/50 backdrop-blur-md p-2 rounded-lg text-white hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-sm">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Object Detection Overlays -->
+<div class="absolute inset-0 pointer-events-none">
+<!-- Status Indicator -->
+<div class="absolute top-4 right-4 bg-emerald-500/10 backdrop-blur-md border border-emerald-500/30 px-2 py-1 rounded-md flex items-center gap-1.5 opacity-100 group-hover:opacity-0 transition-opacity">
+<span class="size-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+<span class="text-[9px] font-bold text-emerald-500 tracking-wider uppercase">Object Detection: ACTIVE</span>
+</div>
+<!-- Bounding Box: Person (Reception) -->
+<div class="absolute border-2 border-emerald-500/50 rounded-sm" style="top: 62%; left: 45%; width: 5%; height: 15%;">
+<div class="absolute -top-5 left-0 bg-emerald-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-t-sm whitespace-nowrap shadow-sm">
+            Person 85%
+        </div>
+</div>
+</div></div>
+<!-- Camera Feed 4 - Empty State / Placeholder -->
+<div class="group relative bg-background-dark/30 rounded-xl border-2 border-dashed border-primary/20 flex flex-col items-center justify-center gap-4 hover:bg-primary/5 hover:border-primary/40 transition-all cursor-pointer aspect-video shadow-2xl">
+<div class="size-16 rounded-full bg-primary/10 flex items-center justify-center text-primary transition-transform group-hover:scale-110">
+<span class="material-symbols-outlined text-4xl">add_a_photo</span>
+</div>
+<div class="text-center">
+<h3 class="font-bold text-slate-400">Add Camera Feed</h3>
+<p class="text-sm text-slate-500">Configure Slot CAM-04</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Status Bar -->
+<footer class="h-10 border-t border-primary/10 bg-background-light dark:bg-background-dark px-6 flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-slate-500 uppercase">Alerts</span>
+<span class="bg-red-500/10 text-red-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-red-500/20">0 Active</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-slate-500 uppercase">Latency</span>
+<span class="text-[10px] font-mono text-emerald-500">24ms (Global)</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-500 text-xs">settings_ethernet</span>
+<span class="text-[10px] text-slate-400">Primary Node: US-EAST-1</span>
+</div>
+</div>
+</footer>
+</main>
+</div>
+</div>
+</body></html>

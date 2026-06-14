@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Traffic Monitoring System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d6cf2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .map-gradient {
+            background: radial-gradient(circle at center, rgba(13, 108, 242, 0.05) 0%, rgba(16, 23, 34, 0) 70%);
+        }
+        .pulse-active {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased overflow-hidden h-screen flex flex-col">
+<!-- Header -->
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-background-dark/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-2 rounded-lg shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-2xl">traffic</span>
+</div>
+<div>
+<h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Smart Traffic Monitoring System</h1>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<p class="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">All Nodes Operational</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex flex-col items-end">
+<p class="text-sm font-bold text-slate-900 dark:text-white">Oct 24, 2023 | 14:45:02</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Timezone: UTC-5 (EST)</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-medium">Admin User</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Systems Controller</p>
+</div>
+<img class="size-10 rounded-full border border-slate-200 dark:border-slate-700 object-cover" data-alt="User avatar for profile section" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfCYSsQLiq5XUyzDKXPRlEppd0lS1g3HC4Zj0PSeCWukbr1Jcow9IjAa5luz_pxNdWvo-6xRPA8aQM6B61fdTUP9Z1i-_9YqLLOGNVcVtcde_sRqbzSp2nQcfOfe8rcr0gmI8D_x8n2jI1c1TbTJgsoeySQ6eDlmSClRXNL2GoT2dp3b0WzBbhH69iA3ND7hULA0P1XIFelSHMxKZ1f7Ls_NzLyZ9Be5-b3HNmga5eIczFmSC_L-rMgM9WTQwtKYWQgQUjEncwgyHj"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden relative">
+<!-- Sidebar: Real-time Analytics -->
+<aside class="w-80 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark z-20 flex flex-col shrink-0">
+<div class="p-4 border-b border-slate-100 dark:border-slate-800">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4">Live Statistics</h3>
+<!-- Main KPI -->
+<div class="bg-primary/10 dark:bg-primary/5 border border-primary/20 p-5 rounded-xl mb-4">
+<p class="text-xs font-semibold text-primary uppercase tracking-wide">Total Vehicles (24h)</p>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-4xl font-black text-slate-900 dark:text-white">1,240</span>
+<span class="text-emerald-500 text-sm font-bold flex items-center">
+<span class="material-symbols-outlined text-sm">trending_up</span> 12%
+                        </span>
+</div>
+</div>
+<!-- Category Breakdown -->
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">directions_car</span>
+<span class="text-sm font-medium">Passenger Cars</span>
+</div>
+<span class="font-bold">800</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">motorcycle</span>
+<span class="text-sm font-medium">Motorcycles</span>
+</div>
+<span class="font-bold">300</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">local_shipping</span>
+<span class="text-sm font-medium">Truck / Bus</span>
+</div>
+<span class="font-bold">140</span>
+</div>
+</div>
+</div>
+<!-- Vehicle Flow Chart -->
+<div class="p-4 flex-1 overflow-y-auto">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4"><div class="flex items-center justify-between mb-4">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">Vehicle Flow Over Time</h3>
+<button class="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border border-slate-700 bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-600 transition-all">
+<span class="material-symbols-outlined text-sm">download</span>
+        Export Data
+    </button>
+</div></h3><div class="flex flex-wrap gap-1.5 mb-4">
+<button class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-primary text-white shadow-lg shadow-primary/20 transition-all">All</button>
+<button class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Cars</button>
+<button class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Motorcycles</button>
+<button class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">Trucks</button>
+</div>
+<div class="h-48 w-full relative group">
+<!-- Simple SVG Line Chart -->
+<svg class="w-full h-full stroke-primary fill-primary/10" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="M0 40 L0 35 Q10 25 20 30 T40 15 T60 25 T80 5 T100 15 L100 40 Z" stroke-width="0.5"></path>
+<path d="M0 35 Q10 25 20 30 T40 15 T60 25 T80 5 T100 15" fill="none" stroke-linecap="round" stroke-width="1.5"></path>
+</svg>
+<!-- Chart Tooltip Overlay (Mock) -->
+<div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-background-dark/20 pointer-events-none">
+<div class="absolute left-1/2 top-10 -translate-x-1/2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap border border-slate-700 shadow-xl">
+                            Peak: 450 v/h at 17:30
+                        </div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-bold text-slate-500">
+<span>00:00</span>
+<span>08:00</span>
+<span>16:00</span>
+<span>23:59</span>
+</div>
+</div>
+<div class="mt-8 space-y-4">
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-tighter">System Health</h4>
+<div class="space-y-2">
+<div class="flex justify-between text-xs">
+<span class="text-slate-500">CPU Usage</span>
+<span class="text-slate-300">24%</span>
+</div>
+<div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[24%]"></div>
+</div>
+</div>
+<div class="flex justify-between items-center p-3 rounded-lg border border-slate-800 bg-slate-900/30">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-emerald-400 text-lg">database</span>
+<span class="text-xs font-medium">Cloud Sync</span>
+</div>
+<span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">ACTIVE</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Central Map View -->
+<section class="flex-1 relative bg-[#0b0e14] map-gradient">
+<!-- Mock Map Background -->
+<div class="absolute inset-0 opacity-40 mix-blend-luminosity">
+<div class="w-full h-full bg-[url('https://api.placeholder.com/1200/800')] bg-cover" data-location="New York City Manhattan" style=""></div>
+</div><!-- Traffic Flow Overlay -->
+<div class="absolute inset-0 pointer-events-none z-[5] opacity-60">
+<svg class="w-full h-full" fill="none" preserveaspectratio="none" viewbox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+<!-- Green - Smooth Traffic -->
+<path d="M0 400 H400 M600 400 H1200 M400 0 V300 M400 500 V800" stroke="#10b981" stroke-linecap="round" stroke-width="4"></path>
+<!-- Orange - Moderate Traffic -->
+<path d="M400 300 L600 400" stroke="#f59e0b" stroke-linecap="round" stroke-width="6"></path>
+<path d="M800 200 L850 400" stroke="#f59e0b" stroke-linecap="round" stroke-width="6"></path>
+<!-- Red - Heavy Traffic -->
+<path d="M400 400 H600" stroke="#ef4444" stroke-linecap="round" stroke-width="8"></path>
+<path d="M500 400 V600" stroke="#ef4444" stroke-linecap="round" stroke-width="8"></path>
+<!-- Intersection Glows -->
+<circle class="animate-pulse" cx="500" cy="400" fill="#ef4444" r="8"></circle>
+<circle cx="400" cy="300" fill="#f59e0b" r="6"></circle>
+</svg>
+</div>
+<!-- Map Controls -->
+<div class="absolute right-6 top-6 z-10 flex flex-col gap-2">
+<button class="size-10 bg-white dark:bg-slate-800 rounded-lg shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="size-10 bg-white dark:bg-slate-800 rounded-lg shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<div class="h-2"></div>
+<button class="size-10 bg-white dark:bg-slate-800 rounded-lg shadow-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined">layers</span>
+</button>
+</div><div class="absolute right-6 bottom-32 z-10 bg-background-dark/80 backdrop-blur-md border border-slate-700 p-3 rounded-lg flex flex-col gap-2 shadow-2xl">
+<h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Traffic Legend</h4>
+<div class="flex items-center gap-2">
+<span class="h-1.5 w-6 rounded-full bg-[#10b981]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Lancar / Smooth</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="h-1.5 w-6 rounded-full bg-[#f59e0b]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Padat Merata / Moderate</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="h-1.5 w-6 rounded-full bg-[#ef4444]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tight">Macet / Heavy</span>
+</div>
+</div>
+<!-- Search Overlay -->
+<div class="absolute left-6 top-6 z-10 w-96">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-white dark:bg-slate-800/90 backdrop-blur border-none rounded-xl h-12 pl-12 pr-4 shadow-2xl focus:ring-2 focus:ring-primary text-sm transition-all outline-none" placeholder="Search intersection or camera ID..." type="text"/>
+</div>
+</div>
+<!-- Map Markers: Interactive Cameras -->
+<!-- Marker 1: Active Focus -->
+<div class="absolute top-[40%] left-[30%] group cursor-pointer z-20">
+<div class="relative flex items-center justify-center">
+<div class="absolute size-12 bg-primary/20 rounded-full animate-ping"></div>
+<div class="relative size-10 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white dark:border-background-dark pulse-active">
+<span class="material-symbols-outlined text-xl">videocam</span>
+</div>
+</div>
+<!-- Mini Tooltip Popup -->
+<div class="absolute top-12 left-1/2 -translate-x-1/2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 hidden group-hover:block">
+<div class="h-32 bg-slate-900 relative">
+<img class="w-full h-full object-cover opacity-60" data-alt="Real-time CCTV camera feed showing busy intersection" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvgf-R3BJouHmIcYzBr_4V4IkxsedZgvbRkC3DzyXDj5puLjBFOikiDAlwQLet94pxyZxevcYIs-eAzt6Qtvv9JducarXbvVGt-U1Tq1jmCVlHvrUM4qKtlifQC69cMJneIAFPnXSw0vtKy8JlE2mX9HVjNKV7IkhRuYTfaXOBgWOSpsjSjYdkf7fmfCyel9jrj7LSJHY3ytVPgF0HryjfeWvx9h7OfyCqfdyFm2IOUUgjfn8Riamw9kaJ7ips6HEs2hvPtEIRoj-6"/>
+<div class="absolute top-2 left-2 px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded flex items-center gap-1">
+<span class="size-1.5 bg-white rounded-full animate-pulse"></span> REC
+                        </div>
+</div>
+<div class="p-3">
+<h4 class="text-xs font-bold truncate">Cam #042 - 5th Avenue</h4>
+<p class="text-[10px] text-slate-500 mt-1">Status: Normal Flow</p>
+<div class="mt-2 flex gap-1">
+<div class="flex-1 h-1 bg-primary rounded-full"></div>
+<div class="flex-1 h-1 bg-primary rounded-full"></div>
+<div class="flex-1 h-1 bg-slate-700 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Marker 2 -->
+<div class="absolute top-[60%] left-[65%] group cursor-pointer">
+<div class="size-8 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-xl border-2 border-background-dark hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-base">videocam</span>
+</div>
+<div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-background-dark/80 text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur">
+                    Cam #109
+                </div>
+</div>
+<!-- Marker 3 -->
+<div class="absolute top-[25%] left-[80%] group cursor-pointer">
+<div class="size-8 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-xl border-2 border-background-dark hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-base">videocam</span>
+</div>
+<div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-background-dark/80 text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur">
+                    Cam #215
+                </div>
+</div>
+<!-- Bottom Camera Strip -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 w-[90%] flex gap-4 overflow-x-auto no-scrollbar pb-2">
+<div class="flex-none w-48 aspect-video bg-slate-900 rounded-lg overflow-hidden border-2 border-primary relative group cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="Active camera feed monitoring traffic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhdFjxblivYBOgcNTspbIx-RdQQTNT5Gqjh2fTWLvfjbxvC4dI1ErIBkMPUHEiIl6qDXZEBjxIb2l3iyVuLOz5w3-rTcmc21p0GVpitwxPUv5tRi59Nn1ng66PUPC98fGfBbiVyEM8qVvBadBoasiglbJBk9wmNkdv3O2GrlzOiNryt6DV2-_nMUUUuq0xgTqkExUzN_qL4oBlQ_0K7uxY25JN2jqgS5U979qKFsq89OcnBoLIjdLJSAUrAbfr5ycMHF2pJZNh5Tm7"/>
+<div class="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-[10px] font-bold text-white uppercase truncate">Main - 5th Ave</p>
+</div>
+</div>
+<div class="flex-none w-48 aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-800 relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="CCTV camera feed showing street view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTD7DF4KmsN0HuxpceKtvRDD1oG6OSesjwy0F5xQXK1L66mLpbwpVZq86TjcJB-G6juGCdZRjJYO3XoTsYAUOxQGY2BcgdJvGZL7F8w-ymb5YZsVcC1bKZc044yg8NIYK7Wna4eBAZqZOjmU1hwWfTr2rS3i0q99l-X5g-xpvkMjPfzT4wfeS8RW_e5SkzxiT-4-9zhY3qjCk7nq0-LPj2AZ4CPtv5i2LD3vxaWLdf-1jj4M1xK5T4hKdz8a_RmLXP0lAgzb9r9WAZ"/>
+<div class="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-[10px] font-bold text-white uppercase truncate">Bridge Exit North</p>
+</div>
+</div>
+<div class="flex-none w-48 aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-800 relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="Night vision traffic camera feed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlxyYrqpetEV75ceYes3IwlITWUbTO_mLiO8yyzagMgUlB0PKJppn4dVHqxZ0ED_pRYSJhNcL12u2cC426dIRnxAa6NYWqQ7h8jWGCVn-LJe29eKJXJk9jHtLIihRrhpFmDy1Cicx5VAdos481BYPZqxumbntUufH0yTfoizNuRbzSrCTz60t2f62rrgzx2_8nUKkGBepcj-3uvDRtfjXW73gkfB-cF7-tuvSu7uygjfGvC9pfFuu1po7KiaN3C9Js0ZCbSSgvT-qa"/>
+<div class="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-[10px] font-bold text-white uppercase truncate">Tunnel West Entrance</p>
+</div>
+</div>
+<div class="flex-none w-48 aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-800 relative group cursor-pointer">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="Daylight street monitoring camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4Toe5GdJGlodVnER_1GpccRadkAVyoCikZpKWd8YxCfQgqh6ZfO43G-D7krK26DJ714k3vA2IZo0qvyBP8r5W8cKD52lZw88uYsZALR4XA2NK75YasQzQ-KMTeqb7HIE44K3GtFrzrMzoUsAqzoCiEFTgikc9ETJ8XS12ZqgnnrweOemlkx21fyuxOVgbQS3KvQZIlTIznsak5wLM77HNnH-titFq_gXO7iuyguoQ0coesH1mF7GhpxwqKB_RfmHq43Yj4Vk3AONj"/>
+<div class="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+<p class="text-[10px] font-bold text-white uppercase truncate">Plaza Intersection</p>
+</div>
+</div>
+<div class="flex-none w-48 aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-800 relative group cursor-pointer">
+<div class="w-full h-full flex items-center justify-center bg-slate-800/50">
+<span class="material-symbols-outlined text-slate-600 text-3xl">add_circle</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer / Status Bar -->
+<footer class="h-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 px-4 flex items-center justify-between shrink-0 text-[10px] font-medium text-slate-500 uppercase tracking-widest z-30">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">gps_fixed</span>
+<span>Coordinates: 40.7128° N, 74.0060° W</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">router</span>
+<span>Latency: 24ms</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-primary">System Secure: AES-256 Enabled</span>
+<div class="size-2 rounded-full bg-emerald-500"></div>
+</div>
+</footer>
+</body></html>

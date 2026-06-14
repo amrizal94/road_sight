@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CCTV Pro - Video Archive</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d6cf2",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101722",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #182434;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #314868;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-white selection:bg-primary/30">
+<div class="flex h-screen overflow-hidden">
+<!-- Global Side Navigation -->
+<aside class="w-64 flex flex-col bg-[#101823] border-r border-white/10 p-4 shrink-0">
+<div class="flex items-center gap-3 mb-8 px-2">
+<div class="bg-primary size-10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white">videocam</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-tight">CCTV Pro</h1>
+<p class="text-primary/70 text-xs font-medium tracking-wider uppercase">Monitoring</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">visibility</span>
+<span class="text-sm font-medium">Surveillance</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary text-white shadow-lg shadow-primary/20 transition-colors" href="#">
+<span class="material-symbols-outlined active-icon">history</span>
+<span class="text-sm font-medium">Archive</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-white/5">
+<div class="flex items-center gap-3 px-2 py-3 rounded-lg bg-white/5">
+<div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold text-white truncate">Security Lead</p>
+<p class="text-[10px] text-white/40 truncate">Admin Access</p>
+</div>
+<span class="material-symbols-outlined text-white/40 text-[18px]">logout</span>
+</div>
+</div>
+</aside>
+<!-- Contextual Control Sidebar -->
+<aside class="w-80 flex flex-col bg-background-dark border-r border-white/5 overflow-y-auto shrink-0">
+<div class="p-6 flex flex-col gap-6">
+<!-- Header Section -->
+<div>
+<h2 class="text-xl font-bold mb-1">Video Archive</h2>
+<p class="text-sm text-white/50">Browse historical footage</p>
+</div>
+<!-- Camera Selection -->
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40">Select Camera</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-white/20" placeholder="Search cameras..." type="text"/>
+</div>
+<select class="w-full bg-white/5 border border-white/10 rounded-lg text-sm py-2 px-3 focus:ring-primary focus:border-primary">
+<option class="bg-background-dark">Main Entrance - CAM 01</option>
+<option class="bg-background-dark">South Parking - CAM 02</option>
+<option class="bg-background-dark">Loading Dock - CAM 03</option>
+<option class="bg-background-dark">Server Room - CAM 04</option>
+</select>
+</div>
+<!-- Calendar Picker -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40">October 2023</label>
+<div class="flex gap-1">
+<button class="p-1 hover:bg-white/5 rounded"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+<button class="p-1 hover:bg-white/5 rounded"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 text-center text-[11px] font-bold text-white/30 mb-1">
+<span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+</div>
+<div class="grid grid-cols-7 gap-1">
+<!-- Placeholder calendar logic -->
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">24</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">25</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">26</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">27</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">28</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">29</div>
+<div class="aspect-square flex items-center justify-center text-xs text-white/20">30</div>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">1</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">2</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">3</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">4</button>
+<button class="aspect-square flex items-center justify-center text-xs bg-primary text-white rounded-full">5</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">6</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">7</button>
+<!-- Remaining dates truncated for UI sample -->
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">8</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">9</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">10</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">11</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">12</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">13</button>
+<button class="aspect-square flex items-center justify-center text-xs hover:bg-white/10 rounded-full">14</button>
+</div>
+</div>
+<!-- Clips List -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<label class="text-xs font-semibold uppercase tracking-wider text-white/40">Event Clips (12)</label>
+<span class="text-[10px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded font-bold">4 ALERTS</span>
+</div>
+<div class="flex flex-col gap-2">
+<!-- Clip Item -->
+<div class="group p-2.5 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-primary/40 cursor-pointer transition-all">
+<div class="flex gap-3">
+<div class="relative w-20 h-12 rounded bg-background-light overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="CCTV thumbnail showing parking lot entrance" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJuB-3kf_oA_9dYN6RnCw4eNRUZ_3qXQ2ttwKS3zKIbR-YL9xmYG0nJjIqLCgYcIhgs04aGWXLN0pQob3JsiZW8u0vj73G8NOHUofUcMqhcmpXsYG0xE6hDsvEhxauVCcpDzpKoHSxr9vcdyJ0mjAa2ximC9mRFqDBf0p2yycW9AciM1QN5X_rcaPDTNMylDbp_Q7c2Geq_C6P1KPDPPJAN4CWaPeIgNcKnZy3d_TkzLn14oGTI2VXXw8rLs4KL8WTq1DsVx6CBd41"/>
+<span class="absolute bottom-1 right-1 text-[8px] bg-black/80 px-1 rounded text-white font-bold">01:24</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[13px] font-bold truncate">Motion: Main Entrance</p>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="size-1.5 rounded-full bg-primary"></span>
+<p class="text-[11px] text-white/40">14:23:10 - 14:24:34</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Clip Item (Alert) -->
+<div class="group p-2.5 bg-red-500/5 border border-red-500/20 rounded-xl hover:bg-red-500/10 hover:border-red-500/40 cursor-pointer transition-all">
+<div class="flex gap-3">
+<div class="relative w-20 h-12 rounded bg-background-light overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="CCTV thumbnail showing motion near a doorway" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGZl0ZomMEsH4lf5NYHfFecCwRWc8P81-zT9Ltn7EsZ_Xio9FOKnkrMucZVekVAR93T0HItAaNkJYRirHjmUYlLbqg99Ec83uf9piwIxNWvN8FYjf_TyKoBJpZKjeeuTLh2f1UKhiBhA7XosXCsR6_3LCqXZF1N2KADIny9BeHToacpZXk-rWrXrBB6Nev_g9HP0UyGRtNYZwyhiO7jk0JCqnkVZ43oVs2d4OWJ1-toR0vxzOm7qclbHWBb9NO0W5BUGFizmTgLTa8"/>
+<div class="absolute inset-0 bg-red-500/20"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[13px] font-bold truncate text-red-400">Alert: Intrusion Detected</p>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="size-1.5 rounded-full bg-red-500 animate-pulse"></span>
+<p class="text-[11px] text-red-400/60">15:01:45 - 15:03:00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Clip Item -->
+<div class="group p-2.5 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-primary/40 cursor-pointer transition-all">
+<div class="flex gap-3">
+<div class="relative w-20 h-12 rounded bg-background-light overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" data-alt="CCTV thumbnail of building lobby area" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW5H6gOLo78JU3GInEC3SGRrZ2pE4Of7EZ_iUTgQipYSvnF61C77-xv7o1QrtX4QS_tYG_AeYBERrprAQwwJTFV8ffEtdXgXRE1lf8P5kbSiN2rzIHCGFaHV8d1yO2OiEygKV_jrX8CGS1pVlj5fKBTWLGyHv4sVW4buSBEMiMJ63Q_7IYR5E5ZVfO-sr16J9Fduncl6X3Y_GyHx_aBbqScQMf5hxjiKYjUei3OQ3T-ZxAabAN1f94Y_-FMuEW378vCyglndS3MNwn"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-[13px] font-bold truncate">Scheduled: Lobby Check</p>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="size-1.5 rounded-full bg-white/20"></span>
+<p class="text-[11px] text-white/40">15:30:00 - 15:45:00</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 flex flex-col min-w-0">
+<!-- Top Toolbar -->
+<header class="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-background-dark/50 backdrop-blur-sm">
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+<h3 class="font-bold text-sm">Main Entrance - CAM 01</h3>
+</div>
+<p class="text-[11px] text-white/40">Archive Selection: Oct 05, 2023 | 14:00 - 16:00</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+                    Sync Timestamps
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white transition-all text-sm font-bold">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export Clip
+                </button>
+</div>
+</header>
+<!-- Video Player Area -->
+<div class="flex-1 relative bg-black flex flex-col justify-center items-center group/player overflow-hidden">
+<!-- Video Mockup -->
+<div class="relative w-full max-h-[calc(100vh-280px)] aspect-video bg-[#0a0f18] shadow-2xl overflow-hidden group">
+<img class="w-full h-full object-cover" data-alt="High resolution CCTV footage of entrance" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAe4ClnUAunJcd0AAA0BZQfIqZdiZc00ZF4GjWKFY-BcroYGxs4iM1WtE0lpSOmPHtctPjfJreDGTvGO1JK3_1wxgwUXTtXnBdWEZ5kvw4Oha-NkKk-DF_aZkvJIeC6AhS84NsEoy081DJrRHh_HVwiDfX1fsk2PM9jFFbtuWyjHt-Z4gD9BivqnhQxpx59DwHftFYUnfOKVs0rgPPHSYsQxR0gBJiCg8q8kV2QR1a3_7Zevz3xzTSJAVD9LfC7rGuBtxYVw7JEJTmj"/>
+<!-- Player Overlays -->
+<div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 opacity-0 group-hover/player:opacity-100 transition-opacity"></div>
+<!-- Top Right Stats -->
+<div class="absolute top-4 right-4 flex flex-col items-end gap-1">
+<span class="text-[10px] bg-black/60 px-2 py-0.5 rounded backdrop-blur-md border border-white/10">30 FPS</span>
+<span class="text-[10px] bg-black/60 px-2 py-0.5 rounded backdrop-blur-md border border-white/10">4.2 Mbps</span>
+<span class="text-[10px] bg-black/60 px-2 py-0.5 rounded backdrop-blur-md border border-white/10">1080p HD</span>
+</div>
+<!-- Bottom Left Metadata -->
+<div class="absolute bottom-4 left-4">
+<p class="text-xs font-mono tracking-widest text-white drop-shadow-lg">2023-10-05 14:23:42.12</p>
+<p class="text-[10px] uppercase font-bold text-primary/80 drop-shadow-lg">Camera: Main_Ent_01</p>
+</div>
+<!-- Play/Pause Overlay Centered -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/player:opacity-100 transition-opacity pointer-events-none">
+<div class="size-16 rounded-full bg-primary/80 text-white flex items-center justify-center backdrop-blur-sm pointer-events-auto cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[40px] active-icon">play_arrow</span>
+</div>
+</div>
+</div>
+<!-- Playback Controls -->
+<div class="w-full bg-background-dark/95 border-t border-white/10 p-4 space-y-4">
+<!-- Scrubbing Bar -->
+<div class="relative h-1.5 w-full bg-white/10 rounded-full cursor-pointer group">
+<div class="absolute left-0 top-0 h-full w-[45%] bg-primary rounded-full">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 size-4 bg-white border-2 border-primary rounded-full scale-0 group-hover:scale-100 transition-transform"></div>
+</div>
+<!-- Motion heatmap on scrubber -->
+<div class="absolute left-[30%] top-0 h-full w-[5%] bg-yellow-400/50"></div>
+<div class="absolute left-[42%] top-0 h-full w-[2%] bg-red-500/80"></div>
+<div class="absolute left-[70%] top-0 h-full w-[10%] bg-emerald-500/30"></div>
+</div>
+<!-- Buttons Area -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">replay_10</span></button>
+<button class="size-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined active-icon">pause</span>
+</button>
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined">forward_10</span></button>
+</div>
+<div class="h-4 w-px bg-white/10"></div>
+<div class="flex items-center gap-2 group/vol">
+<span class="material-symbols-outlined text-white/50 group-hover/vol:text-white transition-colors">volume_up</span>
+<div class="w-20 h-1 bg-white/10 rounded-full overflow-hidden">
+<div class="w-[60%] h-full bg-white"></div>
+</div>
+</div>
+<div class="h-4 w-px bg-white/10"></div>
+<div class="flex items-center gap-1">
+<span class="text-[11px] font-bold text-white/50">SPEED</span>
+<select class="bg-transparent border-none text-[12px] font-bold focus:ring-0 p-0 hover:text-primary cursor-pointer">
+<option class="bg-background-dark">0.5x</option>
+<option class="bg-background-dark" selected="">1x</option>
+<option class="bg-background-dark">2x</option>
+<option class="bg-background-dark">4x</option>
+</select>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-1.5 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">aspect_ratio</span>
+<span class="text-xs font-bold">Zoom</span>
+</button>
+<button class="flex items-center gap-1.5 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">content_cut</span>
+<span class="text-xs font-bold">Clip</span>
+</button>
+<button class="flex items-center gap-1.5 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Timeline View -->
+<section class="h-48 border-t border-white/5 bg-background-dark p-4 shrink-0 overflow-hidden flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-4">
+<h4 class="text-xs font-bold uppercase tracking-wider text-white/40">Daily Timeline</h4>
+<div class="flex gap-2">
+<button class="px-2 py-1 rounded bg-white/5 text-[10px] font-bold hover:bg-primary transition-colors">24H</button>
+<button class="px-2 py-1 rounded bg-primary text-[10px] font-bold">1H</button>
+<button class="px-2 py-1 rounded bg-white/5 text-[10px] font-bold hover:bg-primary transition-colors">15M</button>
+</div>
+</div>
+<div class="flex gap-4 text-[10px] font-bold text-white/40">
+<div class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-white/20"></span> RECORDED</div>
+<div class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-primary"></span> MOTION</div>
+<div class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-red-500"></span> AI ALERT</div>
+</div>
+</div>
+<!-- The Visual Timeline -->
+<div class="relative flex-1 bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
+<!-- Time Markers -->
+<div class="absolute inset-0 flex justify-between px-2 pt-1">
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">14:00</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">14:15</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">14:30</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">14:45</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">15:00</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">15:15</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">15:30</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">15:45</span>
+<span class="text-[9px] text-white/20 border-l border-white/10 h-full pl-1">16:00</span>
+</div>
+<!-- Event Bars -->
+<div class="absolute top-1/2 -translate-y-1/2 w-full h-8 flex items-center px-2">
+<!-- Base record bar -->
+<div class="w-full h-4 bg-white/5 rounded-full overflow-hidden flex">
+<div class="h-full bg-white/20 w-[20%]"></div>
+<div class="h-full bg-primary/40 w-[5%]"></div>
+<div class="h-full bg-white/20 w-[10%]"></div>
+<div class="h-full bg-red-500/60 w-[2%]"></div>
+<div class="h-full bg-white/20 w-[63%]"></div>
+</div>
+</div>
+<!-- Playhead Indicator -->
+<div class="absolute left-[45%] top-0 bottom-0 w-px bg-primary z-10 shadow-[0_0_8px_rgba(13,108,242,0.8)]">
+<div class="absolute -top-1 -left-1 size-2 rounded-full bg-primary"></div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>
